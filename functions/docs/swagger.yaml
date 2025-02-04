@@ -30,9 +30,11 @@ paths:
                 user_id:
                   type: string
                   description: "사용자의 고유 아이디"
+                  example: "user123"
                 user_pw:
                   type: string
                   description: "사용자의 비밀번호"
+                  example: "password123"
       responses:
         201:
           description: "회원가입 성공"
@@ -103,9 +105,11 @@ paths:
                 user_id:
                   type: string
                   description: "사용자의 고유 아이디"
+                  example: "user123"
                 user_pw:
                   type: string
                   description: "사용자의 비밀번호"
+                  example: "password123"
       responses:
         200:
           description: "로그인 성공 (JWT 토큰 포함)"
@@ -119,7 +123,7 @@ paths:
                     example: "로그인 성공"
                   token:
                     type: string
-                    description: "JWT 토큰"
+                    description: "JWT 토큰 (발급된 인증 토큰)"
                     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   lastActiveAt:
                     type: string
@@ -179,9 +183,614 @@ paths:
                     type: string
                     example: "로그인 처리 중 서버 오류가 발생했습니다."
 
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+  /notice:
+    get:
+      tags:
+        - Notice
+      summary: "전체 공지사항 조회"
+      description: "저장된 모든 공지사항을 조회하는 API입니다."
+      responses:
+        200:
+          description: "공지사항 목록"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: "공지사항 ID"
+                      example: "abcd1234"
+                    title:
+                      type: string
+                      description: "공지사항 제목"
+                      example: "전기안전 점검 안내"
+                    content:
+                      type: string
+                      description: "공지사항 내용"
+                      example: "이번 주 금요일 전기안전 점검이 진행됩니다."
+                    author:
+                      type: string
+                      description: "작성자"
+                      example: "관리자"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      description: "공지사항 작성 일시"
+                      example: "2025-02-05T12:00:00Z"
+        404:
+          description: "공지사항이 없습니다"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "No posts found"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "공지사항 조회 중 서버 오류가 발생했습니다."
+    post:
+      tags:
+        - Notice
+      summary: "공지사항 생성"
+      description: "새로운 공지사항을 추가하는 API입니다."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - author
+              properties:
+                title:
+                  type: string
+                  description: "공지사항 제목"
+                  example: "전기안전 점검 안내"
+                content:
+                  type: string
+                  description: "공지사항 내용"
+                  example: "이번 주 금요일 전기안전 점검이 진행됩니다."
+                author:
+                  type: string
+                  description: "작성자"
+                  example: "관리자"
+      responses:
+        201:
+          description: "공지사항 생성 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post created successfully"
+                  postId:
+                    type: string
+                    example: "abcd1234"
+        400:
+          description: "잘못된 요청 (필수 항목이 누락된 경우)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Missing required fields"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "공지사항 생성 중 서버 오류가 발생했습니다."
+
+  /notice/{id}:
+    get:
+      tags:
+        - Notice
+      summary: "단일 공지사항 조회"
+      description: "특정 ID의 공지사항을 조회하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "조회할 공지사항의 ID"
+          schema:
+            type: string
+            example: "abcd1234"
+      responses:
+        200:
+          description: "공지사항 정보"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: "공지사항 ID"
+                    example: "abcd1234"
+                  title:
+                    type: string
+                    description: "공지사항 제목"
+                    example: "전기안전 점검 안내"
+                  content:
+                    type: string
+                    description: "공지사항 내용"
+                    example: "이번 주 금요일 전기안전 점검이 진행됩니다."
+                  author:
+                    type: string
+                    description: "작성자"
+                    example: "관리자"
+                  createdAt:
+                    type: string
+                    format: date-time
+                    description: "공지사항 작성 일시"
+                    example: "2025-02-05T12:00:00Z"
+        404:
+          description: "공지사항을 찾을 수 없음"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post not found"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "공지사항 조회 중 서버 오류가 발생했습니다."
+    put:
+      tags:
+        - Notice
+      summary: "공지사항 수정"
+      description: "특정 ID의 공지사항을 수정하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "수정할 공지사항의 ID"
+          schema:
+            type: string
+            example: "abcd1234"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - author
+              properties:
+                title:
+                  type: string
+                  description: "공지사항 제목"
+                  example: "전기안전 점검 안내 수정"
+                content:
+                  type: string
+                  description: "공지사항 내용"
+                  example: "이번 주 금요일 전기안전 점검이 진행됩니다. 수정"
+                author:
+                  type: string
+                  description: "작성자"
+                  example: "관리자"
+      responses:
+        200:
+          description: "공지사항 수정 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post updated successfully"
+        400:
+          description: "잘못된 요청 (필수 항목이 누락된 경우)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Missing required fields"
+        404:
+          description: "수정할 공지사항을 찾을 수 없음"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post not found"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "공지사항 수정 중 서버 오류가 발생했습니다."
+    delete:
+      tags:
+        - Notice
+      summary: "공지사항 삭제"
+      description: "특정 ID의 공지사항을 삭제하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "삭제할 공지사항의 ID"
+          schema:
+            type: string
+            example: "abcd1234"
+      responses:
+        200:
+          description: "공지사항 삭제 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post deleted successfully"
+        404:
+          description: "삭제할 공지사항을 찾을 수 없음"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post not found"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "공지사항 삭제 중 서버 오류가 발생했습니다."
+
+  /faq:
+    get:
+      tags:
+        - FAQ
+      summary: "전체 FAQ 조회"
+      description: "저장된 모든 FAQ를 조회하는 API입니다."
+      responses:
+        200:
+          description: "FAQ 목록"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: "FAQ ID"
+                      example: "faq1234"
+                    question:
+                      type: string
+                      description: "FAQ 질문"
+                      example: "전기안전 점검은 언제 하나요?"
+                    answer:
+                      type: string
+                      description: "FAQ 답변"
+                      example: "전기안전 점검은 매월 첫째 주 금요일에 진행됩니다."
+        404:
+          description: "FAQ가 없습니다"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "No FAQ found"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "FAQ 조회 중 서버 오류가 발생했습니다."
+    post:
+      tags:
+        - FAQ
+      summary: "FAQ 생성"
+      description: "새로운 FAQ를 추가하는 API입니다."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+                - answer
+              properties:
+                question:
+                  type: string
+                  description: "FAQ 질문"
+                  example: "전기안전 점검은 언제 하나요?"
+                answer:
+                  type: string
+                  description: "FAQ 답변"
+                  example: "전기안전 점검은 매월 첫째 주 금요일에 진행됩니다."
+      responses:
+        201:
+          description: "FAQ 생성 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "FAQ created successfully"
+                  faqId:
+                    type: string
+                    example: "faq1234"
+        400:
+          description: "잘못된 요청 (필수 항목이 누락된 경우)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Missing required fields"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "FAQ 생성 중 서버 오류가 발생했습니다."
+
+  /faq/{id}:
+    get:
+      tags:
+        - FAQ
+      summary: "단일 FAQ 조회"
+      description: "특정 ID의 FAQ를 조회하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "조회할 FAQ의 ID"
+          schema:
+            type: string
+            example: "faq1234"
+      responses:
+        200:
+          description: "FAQ 정보"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: "FAQ ID"
+                    example: "faq1234"
+                  question:
+                    type: string
+                    description: "FAQ 질문"
+                    example: "전기안전 점검은 언제 하나요?"
+                  answer:
+                    type: string
+                    description: "FAQ 답변"
+                    example: "전기안전 점검은 매월 첫째 주 금요일에 진행됩니다."
+        404:
+          description: "FAQ를 찾을 수 없음"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "FAQ not found"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "FAQ 조회 중 서버 오류가 발생했습니다."
+    put:
+      tags:
+        - FAQ
+      summary: "FAQ 수정"
+      description: "특정 ID의 FAQ를 수정하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "수정할 FAQ의 ID"
+          schema:
+            type: string
+            example: "faq1234"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+                - answer
+              properties:
+                question:
+                  type: string
+                  description: "FAQ 질문"
+                  example: "전기안전 점검은 언제 하나요?"
+                answer:
+                  type: string
+                  description: "FAQ 답변"
+                  example: "전기안전 점검은 매월 첫째 주 금요일에 진행됩니다."
+      responses:
+        200:
+          description: "FAQ 수정 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "FAQ updated successfully"
+        400:
+          description: "잘못된 요청 (필수 항목이 누락된 경우)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Missing required fields"
+        404:
+          description: "수정할 FAQ를 찾을 수 없음"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "FAQ not found"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "FAQ 수정 중 서버 오류가 발생했습니다."
+    delete:
+      tags:
+        - FAQ
+      summary: "FAQ 삭제"
+      description: "특정 ID의 FAQ를 삭제하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "삭제할 FAQ의 ID"
+          schema:
+            type: string
+            example: "faq1234"
+      responses:
+        200:
+          description: "FAQ 삭제 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "FAQ deleted successfully"
+        404:
+          description: "삭제할 FAQ를 찾을 수 없음"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "FAQ not found"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "FAQ 삭제 중 서버 오류가 발생했습니다."
