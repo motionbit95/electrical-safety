@@ -794,3 +794,71 @@ paths:
                   message:
                     type: string
                     example: "FAQ 삭제 중 서버 오류가 발생했습니다."
+
+  /device:
+    post:
+      summary: 새 기기 등록
+      description: 사용자의 기기 정보를 등록합니다.
+      tags:
+        - Devices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - deviceIp
+                - deviceId
+                - deviceName
+                - deviceLocation
+              properties:
+                userId:
+                  type: string
+                  example: "user123"
+                  description: 사용자 ID
+                deviceIp:
+                  type: string
+                  example: "192.168.1.100"
+                  description: 기기의 IP 주소
+                deviceId:
+                  type: string
+                  example: "device001"
+                  description: 기기 ID
+                deviceName:
+                  type: string
+                  example: "온도 센서"
+                  description: 기기의 이름
+                deviceLocation:
+                  type: string
+                  example: "거실"
+                  description: 기기 설치 위치
+      responses:
+        "201":
+          description: 기기 등록 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "기기가 성공적으로 등록되었습니다."
+                  deviceId:
+                    type: string
+                    example: "firebase_generated_key"
+        "400":
+          description: 잘못된 요청 (필수 입력값 누락)
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "필수 입력값이 누락되었습니다."
+        "500":
+          description: 서버 내부 오류
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "서버 내부 오류"
