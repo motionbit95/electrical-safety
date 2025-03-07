@@ -3,8 +3,17 @@ const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const { swaggerDocument } = require("./config/swagger");
 const admin = require("firebase-admin");
+const https = require("https");
+const fs = require("fs");
 
 require("dotenv").config();
+
+// 인증서와 개인 키 경로
+const options = {
+  key: fs.readFileSync("private-key.pem"),
+  cert: fs.readFileSync("certificate.pem"),
+  passphrase: "1q2w3e4r", // 여기에 passphrase 입력
+};
 
 const serviceAccount = {
   projectId: process.env.GOOGLE_PROJECT_ID,
@@ -38,4 +47,10 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+// https 서버 실행
+// const port = 443; // https 포트
+// https.createServer(options, app).listen(port, "localhost", () => {
+//   console.log(`https 서버가 https://localhost:${port}에서 실행 중입니다.`);
+// });
 module.exports = app;

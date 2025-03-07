@@ -815,7 +815,32 @@ paths:
                   devices:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Device"
+                      type: object
+                      properties:
+                        userId:
+                          type: string
+                          example: "user123"
+                          description: 사용자 ID
+                        deviceIp:
+                          type: string
+                          example: "192.168.1.100"
+                          description: 기기의 IP 주소
+                        deviceId:
+                          type: string
+                          example: "device001"
+                          description: 기기 ID
+                        deviceName:
+                          type: string
+                          example: "온도 센서"
+                          description: 기기의 이름
+                        deviceLocation:
+                          type: string
+                          example: "온도 센서"
+                          description: 기기 위치
+                        createdAt:
+                          type: string
+                          example: "1741337167407"
+                          description: 기기 등록 일시
         "500":
           description: 서버 내부 오류
           content:
@@ -922,3 +947,70 @@ paths:
               schema:
                 type: string
                 example: "서버 내부 오류"
+
+  /device/get-token:
+    post:
+        summary: 기기 토큰 조회
+        description: Firebase Realtime Database에서 기기 ID를 기반으로 기기 정보를 조회한 후, getDeviceToken 함수를 호출하여 토큰을 반환합니다.
+        tags:
+          - Devices
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deviceId:
+                    type: string
+                    description: 조회할 기기의 고유 ID
+                  connectedPcIp :
+                    type: string
+                    description: 기기와 연결된 PC의 IP 주소 - 기기와 동일망에 있어야함
+                required:
+                  - deviceId
+                  - connectedPcIp
+        responses:
+          "200":
+            description: 기기 정보 조회 성공 및 토큰 반환
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: 기기 정보 조회 성공
+                    deviceData:
+                      type: object
+                      properties:
+                        deviceIp:
+                          type: string
+                          example: "192.168.1.100"
+                        tokenData:
+                          type: object
+                          properties:
+                            token:
+                              type: string
+                              example: "abcd1234efgh5678"
+          "400":
+            description: 기기 ID가 요청에 포함되지 않음
+            content:
+              text/plain:
+                schema:
+                  type: string
+                  example: 기기 ID가 필요합니다.
+          "404":
+            description: 요청한 deviceId가 존재하지 않음
+            content:
+              text/plain:
+                schema:
+                  type: string
+                  example: 해당 기기를 찾을 수 없습니다.
+          "500":
+            description: 서버 오류 발생
+            content:
+              text/plain:
+                schema:
+                  type: string
+                  example: 서버 오류: 기기 정보 조회 실패
