@@ -795,6 +795,331 @@ paths:
                     type: string
                     example: "FAQ 삭제 중 서버 오류가 발생했습니다."
 
+  /inquiry:
+    post:
+      tags:
+        - Inquiry
+      summary: "1:1 문의 생성"
+      description: "새로운 1:1 문의를 등록하는 API입니다."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - title
+                - content
+              properties:
+                userId:
+                  type: string
+                  description: "사용자 ID"
+                  example: "user123"
+                title:
+                  type: string
+                  description: "문의 제목"
+                  example: "결제 오류 문의"
+                content:
+                  type: string
+                  description: "문의 내용"
+                  example: "결제 진행 중 오류가 발생했습니다."
+      responses:
+        201:
+          description: "문의 생성 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Inquiry created successfully"
+                  inquiryId:
+                    type: string
+                    example: "abcd1234"
+        400:
+          description: "잘못된 요청 (필수 항목 누락)"
+        500:
+          description: "서버 오류"
+
+    get:
+      tags:
+        - Inquiry
+      summary: "전체 1:1 문의 조회"
+      description: "등록된 모든 1:1 문의를 조회하는 API입니다."
+      responses:
+        200:
+          description: "문의 목록"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: "문의 ID"
+                      example: "abcd1234"
+                    userId:
+                      type: string
+                      description: "사용자 ID"
+                      example: "user123"
+                    title:
+                      type: string
+                      description: "문의 제목"
+                      example: "결제 오류 문의"
+                    content:
+                      type: string
+                      description: "문의 내용"
+                      example: "결제 진행 중 오류가 발생했습니다."
+                    createdAt:
+                      type: string
+                      format: date-time
+                      description: "문의 작성 일시"
+                      example: "2025-02-05T12:00:00Z"
+        404:
+          description: "문의가 없습니다"
+        500:
+          description: "서버 오류"
+
+  /inquiry/{id}:
+    get:
+      tags:
+        - Inquiry
+      summary: "단일 1:1 문의 조회"
+      description: "특정 ID의 1:1 문의를 조회하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "조회할 문의의 ID"
+          schema:
+            type: string
+            example: "abcd1234"
+      responses:
+        200:
+          description: "문의 정보"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "abcd1234"
+                  userId:
+                    type: string
+                    example: "user123"
+                  title:
+                    type: string
+                    example: "결제 오류 문의"
+                  content:
+                    type: string
+                    example: "결제 진행 중 오류가 발생했습니다."
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: "2025-02-05T12:00:00Z"
+        404:
+          description: "문의가 없습니다"
+        500:
+          description: "서버 오류"
+
+    put:
+      tags:
+        - Inquiry
+      summary: "1:1 문의 수정"
+      description: "특정 ID의 1:1 문의를 수정하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "수정할 문의의 ID"
+          schema:
+            type: string
+            example: "abcd1234"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "결제 오류 문의 (수정됨)"
+                content:
+                  type: string
+                  example: "결제 진행 중 오류가 발생했습니다. (수정됨)"
+                status:
+                  type: string
+                  example: "resolved"
+      responses:
+        200:
+          description: "문의 수정 성공"
+        400:
+          description: "잘못된 요청"
+        404:
+          description: "문의가 없습니다"
+        500:
+          description: "서버 오류"
+
+    delete:
+      tags:
+        - Inquiry
+      summary: "1:1 문의 삭제"
+      description: "특정 ID의 1:1 문의를 삭제하는 API입니다."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: "삭제할 문의의 ID"
+          schema:
+            type: string
+            example: "abcd1234"
+      responses:
+        200:
+          description: "문의 삭제 성공"
+        404:
+          description: "문의가 없습니다"
+        500:
+          description: "서버 오류"
+
+  /inquiry/user/{userId}:
+    get:
+      tags:
+        - Inquiry
+      summary: "특정 사용자 1:1 문의 조회"
+      description: "특정 사용자의 1:1 문의 내역을 조회하는 API입니다."
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          description: "조회할 사용자 ID"
+          schema:
+            type: string
+            example: "user1234"
+      responses:
+        200:
+          description: "특정 사용자 문의 목록"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: "문의 ID"
+                      example: "xyz9876"
+                    question:
+                      type: string
+                      description: "문의 내용"
+                      example: "배송 일정이 궁금합니다."
+                    answer:
+                      type: string
+                      description: "관리자 답변"
+                      example: "배송은 3~5일 소요됩니다."
+                    status:
+                      type: string
+                      enum: ["pending", "answered"]
+                      description: "문의 상태"
+                      example: "pending"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      description: "문의 작성 일시"
+                      example: "2025-03-10T15:00:00Z"
+        404:
+          description: "해당 사용자의 문의가 없습니다"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "No inquiries found for this user"
+        500:
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: -1002
+                  message:
+                    type: string
+                    example: "사용자 문의 조회 중 서버 오류가 발생했습니다."
+
+  /inquiry/{id}/answer:
+    post:
+      tags:
+        - Inquiry
+      summary: 문의에 대한 답변 제출
+      description: 문의에 답변을 업데이트하고 상태를 "답변 완료"로 변경합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 문의의 ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answer:
+                  type: string
+                  description: 문의에 대한 답변
+              required:
+                - answer
+      responses:
+        200:
+          description: 답변이 성공적으로 제출되었습니다.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        400:
+          description: 잘못된 요청 (답변 누락)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        404:
+          description: 문의를 찾을 수 없습니다.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        500:
+          description: 서버 내부 오류
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
   /device:
     get:
       summary: 기기 목록 조회
