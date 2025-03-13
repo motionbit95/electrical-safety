@@ -9,10 +9,11 @@ const inquiryDB = admin.database().ref("inquiries");
 
 // Notice 모델 정의 (클래스 방식)
 class Notice {
-  constructor(title, content, author) {
+  constructor(title, content, author, type) {
     this.title = title;
     this.content = content;
     this.author = author;
+    this.type = type || "공지";
     this.createdAt = admin.database.ServerValue.TIMESTAMP; // 타임스탬프
   }
 }
@@ -28,13 +29,13 @@ class FAQ {
 
 // 공지사항 생성
 router.post("/notice", async (req, res) => {
-  const { title, content, author } = req.body;
+  const { title, content, author, type } = req.body;
 
   if (!title || !content || !author) {
     return res.status(400).send("Missing required fields");
   }
 
-  const newNotice = new Notice(title, content, author);
+  const newNotice = new Notice(title, content, author, type);
 
   try {
     const postRef = noticeDB.push();

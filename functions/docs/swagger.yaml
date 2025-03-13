@@ -258,6 +258,7 @@ paths:
                 - title
                 - content
                 - author
+                - type
               properties:
                 title:
                   type: string
@@ -271,6 +272,10 @@ paths:
                   type: string
                   description: "작성자"
                   example: "관리자"
+                type:
+                  type: string
+                  description: "공지사항 타입"
+                  example: "공지"
       responses:
         201:
           description: "공지사항 생성 성공"
