@@ -37,10 +37,12 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 const authRoutes = require("./routes/auth");
 const postRoutes = require("./routes/post");
 const deviceRoutes = require("./routes/device");
+const complexRoutes = require("./routes/complex");
 
 app.use("/device", deviceRoutes);
 app.use("/", postRoutes);
 app.use("/auth", authRoutes);
+app.use("/complex", complexRoutes);
 
 // const PORT = process.env.PORT || 8080;
 
