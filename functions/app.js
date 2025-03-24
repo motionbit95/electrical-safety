@@ -36,7 +36,7 @@ const sensorRoutes = require("./routes/sensor");
 app.use("/device", deviceRoutes);
 app.use("/", postRoutes);
 app.use("/auth", authRoutes);
-app.use("/complex", complexRoutes);
+app.use("/", complexRoutes);
 app.use("/sensor", sensorRoutes);
 
 // const PORT = process.env.PORT || 8080;

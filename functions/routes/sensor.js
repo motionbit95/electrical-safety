@@ -56,7 +56,6 @@ router.get("/:sensorId/daily-average/:date", async (req, res) => {
     }
 
     const data = Object.values(snapshot.val()).filter((item) => {
-      console.log(new Date(item.updateTime).toISOString().split("T")[0], date);
       return (
         item.updateTime &&
         new Date(item.updateTime).toISOString().split("T")[0] === date

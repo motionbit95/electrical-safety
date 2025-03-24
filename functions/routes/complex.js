@@ -2,281 +2,196 @@ const express = require("express");
 const admin = require("firebase-admin");
 const router = express.Router();
 
-// Firebase Realtime Database의 "complexes" 레퍼런스를 가져옴
+// Firebase Realtime Database 레퍼런스
 const complexDB = admin.database().ref("complexes");
+const apartmentDB = admin.database().ref("apartments");
 
-// **단지 및 아파트 추가 API**
-router.post("/", async (req, res) => {
-  try {
-    const { flag, complexName, apartments = [] } = req.body;
+// **단지 클래스**
+class Complex {
+  static async add(complexName) {
+    if (!complexName) throw new Error("단지 이름은 필수 입력값입니다.");
 
-    if (!flag) {
-      return res
-        .status(400)
-        .json({ error: "플래그(flag)는 필수 입력값입니다." });
-    }
+    const complexSnapshot = await complexDB
+      .orderByChild("name")
+      .equalTo(complexName)
+      .once("value");
+    if (complexSnapshot.exists()) throw new Error("단지가 이미 존재합니다.");
 
-    switch (flag) {
-      case "CPX":
-        if (!complexName) {
-          return res
-            .status(400)
-            .json({ error: "단지 이름은 필수 입력값입니다." });
-        }
-
-        const complexSnapshot = await complexDB
-          .orderByChild("name")
-          .equalTo(complexName)
-          .once("value");
-
-        if (complexSnapshot.exists()) {
-          return res.status(400).json({ error: "단지가 이미 존재합니다." });
-        }
-
-        const newComplexRef = complexDB.push();
-        await newComplexRef.set({
-          name: complexName,
-          apartments: [],
-        });
-
-        res.status(201).json({
-          message: "단지가 성공적으로 추가되었습니다.",
-          id: newComplexRef.key,
-        });
-        break;
-
-      case "APT":
-        if (!complexName || !apartments || apartments.length === 0) {
-          return res.status(400).json({
-            error: "단지 이름과 추가할 아파트 목록이 필요합니다.",
-          });
-        }
-
-        const aptSnapshot = await complexDB
-          .orderByChild("name")
-          .equalTo(complexName)
-          .once("value");
-
-        if (!aptSnapshot.exists()) {
-          return res.status(500).json({ error: "단지를 찾을 수 없습니다." });
-        }
-
-        const complexKey = Object.keys(aptSnapshot.val())[0];
-        const existingApartments =
-          aptSnapshot.val()[complexKey].apartments || [];
-
-        await complexDB.child(complexKey).update({
-          apartments: [...new Set([...existingApartments, ...apartments])],
-        });
-
-        res.status(200).json({
-          message: "아파트 목록이 성공적으로 업데이트되었습니다.",
-          apartments: [...existingApartments, ...apartments],
-        });
-        break;
-
-      default:
-        res.status(400).json({ error: "잘못된 플래그 값입니다." });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const newComplexRef = complexDB.push();
+    await newComplexRef.set({ name: complexName });
+    return {
+      id: newComplexRef.key,
+      message: "단지가 성공적으로 추가되었습니다.",
+    };
   }
-});
 
-// **단지 목록 조회 API**
-router.get("/", async (req, res) => {
-  try {
+  static async getAll() {
     const snapshot = await complexDB.once("value");
-    if (!snapshot.exists()) {
-      return res.status(500).json({ message: "등록된 단지가 없습니다." });
+    if (!snapshot.exists()) return [];
+    return snapshot.val();
+  }
+
+  static async update(complexId, newName) {
+    if (!newName) throw new Error("새로운 단지 이름은 필수 입력값입니다.");
+    await complexDB.child(complexId).update({ name: newName });
+    return { message: "단지가 성공적으로 수정되었습니다." };
+  }
+
+  static async delete(complexId) {
+    await complexDB.child(complexId).remove();
+    return { message: "단지가 성공적으로 삭제되었습니다." };
+  }
+
+  static async getById(complexId) {
+    const snapshot = await complexDB.child(complexId).once("value");
+    if (!snapshot.exists())
+      throw new Error("해당 ID의 단지를 찾을 수 없습니다.");
+    return snapshot.val();
+  }
+}
+
+// **아파트 클래스**
+class Apartment {
+  // 아파트 추가
+  static async add(complexId, apartmentName, criticalTemperature = null) {
+    if (!complexId || !apartmentName) {
+      throw new Error("단지 ID와 아파트 이름이 필요합니다.");
     }
 
-    // 데이터를 객체 형태로 변환
-    const complexes = snapshot.val();
+    const complexSnap = await complexDB.child(complexId).once("value");
+    if (!complexSnap.exists()) throw new Error("단지를 찾을 수 없습니다.");
 
-    // 각 단지의 아파트 목록을 index와 함께 변환
-    const result = Object.keys(complexes).map((key) => ({
-      id: key,
-      name: complexes[key].name,
-      apartments: complexes[key].apartments
-        ? complexes[key].apartments.map((apt, index) => ({
-            index,
-            name: apt,
-          }))
-        : [],
-    }));
+    const newApartmentRef = apartmentDB.push();
+    await newApartmentRef.set({
+      temp: criticalTemperature,
+      name: apartmentName,
+      complexId,
+    });
+    return {
+      id: newApartmentRef.key,
+      message: "아파트가 성공적으로 추가되었습니다.",
+    };
+  }
 
-    res.status(200).json(result);
+  // 특정 단지 내 아파트 목록 조회
+  static async getByComplex(complexId) {
+    const apartmentSnap = await apartmentDB
+      .orderByChild("complexId")
+      .equalTo(complexId)
+      .once("value");
+    return apartmentSnap.exists() ? apartmentSnap.val() : {};
+  }
+
+  // 특정 아파트 ID로 조회
+  static async getById(apartmentId) {
+    const apartmentSnap = await apartmentDB.child(apartmentId).once("value");
+    if (!apartmentSnap.exists()) throw new Error("아파트를 찾을 수 없습니다.");
+    return apartmentSnap.val();
+  }
+
+  // 아파트 수정
+  static async update(apartmentId, newName) {
+    if (!newName) throw new Error("새로운 아파트 이름은 필수 입력값입니다.");
+    await apartmentDB.child(apartmentId).update({ name: newName });
+    return { message: "아파트가 성공적으로 수정되었습니다." };
+  }
+
+  // 아파트 삭제
+  static async delete(apartmentId) {
+    await apartmentDB.child(apartmentId).remove();
+    return { message: "아파트가 성공적으로 삭제되었습니다." };
+  }
+}
+
+// **단지 API**
+router.post("/complex", async (req, res) => {
+  try {
+    res.status(201).json(await Complex.add(req.body.complexName));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// **단지 이름으로 단지 데이터 조회 API**
-router.get("/:complexName", async (req, res) => {
+router.get("/complexes", async (req, res) => {
   try {
-    const { complexName } = req.params;
-
-    if (!complexName) {
-      return res.status(400).json({ error: "단지 이름은 필수 입력값입니다." });
-    }
-
-    const complexSnap = await complexDB
-      .orderByChild("name")
-      .equalTo(complexName)
-      .once("value");
-
-    if (!complexSnap.exists()) {
-      return res.status(500).json({ error: "해당 단지를 찾을 수 없습니다." });
-    }
-
-    // 단지 ID와 데이터를 반환
-    const complexId = Object.keys(complexSnap.val())[0];
-    const complexData = complexSnap.val()[complexId];
-
-    res.status(200).json({ id: complexId, ...complexData });
+    res.status(200).json(await Complex.getAll());
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// **단지 및 아파트 수정 API** (complexId 대신 complexName 사용)
-router.put("/", async (req, res) => {
+router.put("/complex", async (req, res) => {
   try {
-    const {
-      flag,
-      apartments,
-      complexName,
-      apartmentIndex,
-      apartmentName,
-      newComplexName,
-    } = req.body;
-
-    if (!flag || !complexName) {
-      return res
-        .status(400)
-        .json({ error: "플래그(flag)와 단지 이름은 필수 입력값입니다." });
-    }
-
-    const complexSnap = await complexDB
-      .orderByChild("name")
-      .equalTo(complexName)
-      .once("value");
-    if (!complexSnap.exists()) {
-      return res.status(500).json({ error: "단지를 찾을 수 없습니다." });
-    }
-
-    const complexId = Object.keys(complexSnap.val())[0];
-
-    switch (flag) {
-      case "CPX":
-        if (!newComplexName) {
-          return res
-            .status(400)
-            .json({ error: "새로운 단지 이름은 필수 입력값입니다." });
-        }
-
-        // 모든 단지 데이터를 가져와서 중복 확인
-        const allComplexesSnapshot = await complexDB.once("value");
-        const allComplexes = allComplexesSnapshot.val();
-
-        // 현재 수정하려는 단지 외에 동일한 이름이 존재하는지 검사
-        const nameExists = Object.values(allComplexes).some(
-          (complex) =>
-            complex.name === newComplexName && complex.id !== complexId
-        );
-
-        if (nameExists) {
-          return res
-            .status(400)
-            .json({ error: "이미 존재하는 단지 이름입니다." });
-        }
-
-        const updateData = {
-          name: newComplexName,
-        };
-        if (apartments) updateData.apartments = apartments;
-
-        console.log(complexId, updateData);
-        await complexDB.child(complexId).update(updateData);
-        res.status(200).json({ message: "단지가 성공적으로 수정되었습니다." });
-        break;
-
-      case "APT":
-        if (apartmentIndex === undefined || !apartmentName) {
-          return res
-            .status(400)
-            .json({ error: "아파트 인덱스와 이름이 필요합니다." });
-        }
-
-        const currentApts = complexSnap.val()[complexId].apartments || [];
-        if (apartmentIndex < 0 || apartmentIndex >= currentApts.length) {
-          return res.status(400).json({ error: "잘못된 아파트 인덱스입니다." });
-        }
-
-        currentApts[apartmentIndex] = apartmentName;
-        await complexDB.child(complexId).update({ apartments: currentApts });
-        res
-          .status(200)
-          .json({ message: "아파트가 성공적으로 수정되었습니다." });
-        break;
-
-      default:
-        res.status(400).json({ error: "잘못된 플래그 값입니다." });
-    }
+    res
+      .status(200)
+      .json(await Complex.update(req.body.complexId, req.body.newName));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// **단지 및 아파트 삭제 API** (complexId 대신 complexName 사용)
-router.delete("/", async (req, res) => {
+router.delete("/complex", async (req, res) => {
   try {
-    const { flag, apartmentIndex, complexName } = req.body;
+    res.status(200).json(await Complex.delete(req.body.complexId));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    if (!flag || !complexName) {
-      return res
-        .status(400)
-        .json({ error: "플래그(flag)와 단지 이름은 필수 입력값입니다." });
-    }
+router.get("/complex/:complexId", async (req, res) => {
+  try {
+    res.status(200).json(await Complex.getById(req.params.complexId));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    const complexSnap = await complexDB
-      .orderByChild("name")
-      .equalTo(complexName)
-      .once("value");
-    if (!complexSnap.exists()) {
-      return res.status(500).json({ error: "단지를 찾을 수 없습니다." });
-    }
+// **아파트 API 라우터**
+router.post("/apartment", async (req, res) => {
+  try {
+    res
+      .status(201)
+      .json(
+        await Apartment.add(
+          req.body.complexId,
+          req.body.apartmentName,
+          req.body.criticalTemperature
+        )
+      );
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    const complexId = Object.keys(complexSnap.val())[0];
+router.get("/apartments/:complexId", async (req, res) => {
+  try {
+    res.status(200).json(await Apartment.getByComplex(req.params.complexId));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    switch (flag) {
-      case "CPX":
-        await complexDB.child(complexId).remove();
-        res.status(200).json({ message: "단지가 성공적으로 삭제되었습니다." });
-        break;
+router.get("/apartment/:apartmentId", async (req, res) => {
+  try {
+    res.status(200).json(await Apartment.getById(req.params.apartmentId));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-      case "APT":
-        if (apartmentIndex === undefined) {
-          return res.status(400).json({ error: "아파트 인덱스가 필요합니다." });
-        }
+router.put("/apartment", async (req, res) => {
+  try {
+    res
+      .status(200)
+      .json(await Apartment.update(req.body.apartmentId, req.body.newName));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-        const apts = complexSnap.val()[complexId].apartments || [];
-        if (apartmentIndex < 0 || apartmentIndex >= apts.length) {
-          return res.status(400).json({ error: "잘못된 아파트 인덱스입니다." });
-        }
-
-        apts.splice(apartmentIndex, 1);
-        await complexDB.child(complexId).update({ apartments: apts });
-
-        res
-          .status(200)
-          .json({ message: "아파트가 성공적으로 삭제되었습니다." });
-        break;
-
-      default:
-        res.status(400).json({ error: "잘못된 플래그 값입니다." });
-    }
+router.delete("/apartment", async (req, res) => {
+  try {
+    res.status(200).json(await Apartment.delete(req.body.apartmentId));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
