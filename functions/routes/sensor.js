@@ -55,9 +55,13 @@ router.get("/:sensorId/daily-average/:date", async (req, res) => {
       return res.status(404).json({ message: "데이터를 찾을 수 없습니다." });
     }
 
-    const data = Object.values(snapshot.val()).filter(
-      (item) => item.timestamp && item.timestamp.startsWith(date)
-    );
+    const data = Object.values(snapshot.val()).filter((item) => {
+      console.log(new Date(item.updateTime).toISOString().split("T")[0], date);
+      return (
+        item.updateTime &&
+        new Date(item.updateTime).toISOString().split("T")[0] === date
+      );
+    });
 
     if (data.length === 0) {
       return res
@@ -66,15 +70,15 @@ router.get("/:sensorId/daily-average/:date", async (req, res) => {
     }
 
     const overallAvg =
-      data.reduce((sum, d) => sum + d.temperature, 0) / data.length;
+      data.reduce((sum, d) => sum + d.tempVal, 0) / data.length;
 
     const hourlyAvg = {};
     for (let hour = 0; hour < 24; hour++) {
       const hourData = data.filter(
-        (d) => new Date(d.timestamp).getHours() === hour
+        (d) => new Date(d.updateTime).getHours() === hour
       );
       hourlyAvg[hour] = hourData.length
-        ? hourData.reduce((sum, d) => sum + d.temperature, 0) / hourData.length
+        ? hourData.reduce((sum, d) => sum + d.tempVal, 0) / hourData.length
         : 0;
     }
 
@@ -96,8 +100,8 @@ router.get("/:sensorId/monthly-average/:year/:month", async (req, res) => {
     }
 
     const data = Object.values(snapshot.val()).filter((item) => {
-      if (!item.timestamp) return false;
-      const itemDate = new Date(item.timestamp);
+      if (!item.updateTime) return false;
+      const itemDate = new Date(item.updateTime);
       return (
         itemDate.getFullYear() === parseInt(year) &&
         itemDate.getMonth() + 1 === parseInt(month)
@@ -109,16 +113,16 @@ router.get("/:sensorId/monthly-average/:year/:month", async (req, res) => {
     }
 
     const overallAvg =
-      data.reduce((sum, d) => sum + d.temperature, 0) / data.length;
+      data.reduce((sum, d) => sum + d.tempVal, 0) / data.length;
 
     const weeklyAvg = {};
     for (let week = 1; week <= 4; week++) {
       const weekData = data.filter((item) => {
-        const day = new Date(item.timestamp).getDate();
+        const day = new Date(item.updateTime).getDate();
         return (week - 1) * 7 < day && day <= week * 7;
       });
       weeklyAvg[week] = weekData.length
-        ? weekData.reduce((sum, d) => sum + d.temperature, 0) / weekData.length
+        ? weekData.reduce((sum, d) => sum + d.tempVal, 0) / weekData.length
         : 0;
     }
 
@@ -141,8 +145,8 @@ router.get("/:sensorId/yearly-average/:year", async (req, res) => {
 
     const data = Object.values(snapshot.val()).filter(
       (item) =>
-        item.timestamp &&
-        new Date(item.timestamp).getFullYear() === parseInt(year)
+        item.updateTime &&
+        new Date(item.updateTime).getFullYear() === parseInt(year)
     );
 
     if (data.length === 0) {
@@ -152,16 +156,15 @@ router.get("/:sensorId/yearly-average/:year", async (req, res) => {
     }
 
     const overallAvg =
-      data.reduce((sum, d) => sum + d.temperature, 0) / data.length;
+      data.reduce((sum, d) => sum + d.tempVal, 0) / data.length;
 
     const monthlyAvg = {};
     for (let month = 1; month <= 12; month++) {
       const monthData = data.filter(
-        (item) => new Date(item.timestamp).getMonth() + 1 === month
+        (item) => new Date(item.updateTime).getMonth() + 1 === month
       );
       monthlyAvg[month] = monthData.length
-        ? monthData.reduce((sum, d) => sum + d.temperature, 0) /
-          monthData.length
+        ? monthData.reduce((sum, d) => sum + d.tempVal, 0) / monthData.length
         : 0;
     }
 

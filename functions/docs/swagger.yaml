@@ -1590,18 +1590,10 @@ paths:
                     type: string
                     example: "서버 오류 메시지"
 
-  /complex/{id}:
     put:
       tags:
         - Complex
       summary: "단지 또는 아파트 수정"
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: "수정할 단지의 ID"
-          schema:
-            type: string
       requestBody:
         required: true
         content:
@@ -1611,12 +1603,19 @@ paths:
               required:
                 - flag
               properties:
+                complexName:
+                  type: string
+                  required: true
+                  description: "수정할 단지의 이름"
+                  example: "1단지"
+                  schema:
+                    type: string
                 flag:
                   type: string
                   enum: [CPX, APT]
                   description: "CPX: 단지 수정, APT: 아파트 수정"
                   example: "CPX"
-                complexName:
+                newComplexName:
                   type: string
                   description: |
                     "단지 수정 시 사용할 새로운 이름을 입력하세요.  
@@ -1668,13 +1667,6 @@ paths:
       tags:
         - Complex
       summary: "단지 또는 아파트 삭제"
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: "삭제할 단지의 ID"
-          schema:
-            type: string
       requestBody:
         required: true
         content:
@@ -1684,6 +1676,13 @@ paths:
               required:
                 - flag
               properties:
+                complexName:
+                  type: string
+                  required: true
+                  description: "수정할 단지의 이름"
+                  example: "1단지"
+                  schema:
+                    type: string
                 flag:
                   type: string
                   enum: [CPX, APT]
@@ -1706,6 +1705,46 @@ paths:
                   message:
                     type: string
                     example: "단지/아파트 삭제 성공"
+        "500":
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "서버 오류 메시지"
+
+  /complex/{complexName}:
+    get:
+      tags:
+        - Complex
+      summary: "단지 조회"
+      parameters:
+        - in: path
+          name: complexName
+          required: true
+          schema:
+            type: string
+          description: "단지 이름"
+      responses:
+        "200":
+          description: "단지 정보"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  complexName:
+                    type: string
+                    example: "1단지"
+                  apartments:
+                    type: array
+                    items:
+                      type: string
+                    example: ["A 아파트", "B 아파트"]
+
         "500":
           description: "서버 오류"
           content:

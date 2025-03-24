@@ -215,21 +215,7 @@ function startDevicePolling(devices, username, password) {
             ":" +
             String(updateTime.getSeconds()).padStart(2, "0");
 
-          const testData = {
-            enable: true,
-            data: [
-              {
-                devAddr: "ABCD",
-                tempVal: 22,
-                updateTime: formattedTime,
-                // updateTime: "2024-01-01 08:13:01",
-              },
-            ],
-            code: 200,
-            msg: "Success",
-          };
-
-          saveTemperatureData(testData);
+          saveTemperatureData(authResponse.data);
         } catch (err) {
           console.error(`❌ [${ip}] 요청 오류:`, err.message);
         }
