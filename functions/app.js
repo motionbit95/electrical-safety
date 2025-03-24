@@ -8,13 +8,6 @@ const fs = require("fs");
 
 require("dotenv").config();
 
-// 인증서와 개인 키 경로
-const options = {
-  key: fs.readFileSync("private-key.pem"),
-  cert: fs.readFileSync("certificate.pem"),
-  passphrase: "1q2w3e4r", // 여기에 passphrase 입력
-};
-
 const serviceAccount = {
   projectId: process.env.GOOGLE_PROJECT_ID,
   privateKey: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
@@ -38,11 +31,13 @@ const authRoutes = require("./routes/auth");
 const postRoutes = require("./routes/post");
 const deviceRoutes = require("./routes/device");
 const complexRoutes = require("./routes/complex");
+const sensorRoutes = require("./routes/sensor");
 
 app.use("/device", deviceRoutes);
 app.use("/", postRoutes);
 app.use("/auth", authRoutes);
 app.use("/complex", complexRoutes);
+app.use("/sensor", sensorRoutes);
 
 // const PORT = process.env.PORT || 8080;
 
