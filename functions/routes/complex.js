@@ -101,6 +101,21 @@ class Apartment {
     await apartmentDB.child(apartmentId).remove();
     return { message: "아파트가 성공적으로 삭제되었습니다." };
   }
+
+  // 아파트 이름으로 검색
+  static async findByName(name) {
+    const apartmentSnap = await apartmentDB.once("value");
+    if (!apartmentSnap.exists()) return [];
+
+    const apartments = apartmentSnap.val();
+
+    // 부분 검색 기능 추가 (name에 검색어가 포함된 데이터 필터링)
+    const result = Object.entries(apartments)
+      .filter(([id, apt]) => apt.name.includes(name)) // 부분 검색
+      .map(([id, apt]) => ({ id, ...apt }));
+
+    return result;
+  }
 }
 
 // **단지 API**
@@ -179,19 +194,18 @@ router.get("/apartment/:apartmentId", async (req, res) => {
   }
 });
 
-router.put("/apartment", async (req, res) => {
+router.delete("/apartment", async (req, res) => {
   try {
-    res
-      .status(200)
-      .json(await Apartment.update(req.body.apartmentId, req.body.newName));
+    res.status(200).json(await Apartment.delete(req.body.apartmentId));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.delete("/apartment", async (req, res) => {
+router.get("/apartment/search/:name", async (req, res) => {
   try {
-    res.status(200).json(await Apartment.delete(req.body.apartmentId));
+    const apartments = await Apartment.findByName(req.params.name);
+    res.status(200).json(apartments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

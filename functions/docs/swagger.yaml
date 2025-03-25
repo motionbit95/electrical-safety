@@ -2007,3 +2007,42 @@ paths:
           description: "아파트 정보 반환"
         500:
           description: "서버 오류"
+
+  /apartment/search/{name}:
+    get:
+      summary: 아파트 이름으로 검색
+      description: 특정 아파트 이름이 포함된 아파트 목록을 반환합니다.
+      tags:
+        - Apartment
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: 검색할 아파트 이름
+          schema:
+            type: string
+      responses:
+        200:
+          description: 검색된 아파트 목록 반환
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "apt123"
+                    name:
+                      type: string
+                      example: "강남1차 아파트"
+                    complexId:
+                      type: string
+                      example: "cx456"
+                    temp:
+                      type: number
+                      nullable: true
+                      example: 25
+        500:
+          description: 서버 오류 발생
