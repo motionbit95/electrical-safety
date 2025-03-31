@@ -32,12 +32,14 @@ const postRoutes = require("./routes/post");
 const deviceRoutes = require("./routes/device");
 const complexRoutes = require("./routes/complex");
 const sensorRoutes = require("./routes/sensor");
+const eventRoutes = require("./routes/event");
 
 app.use("/device", deviceRoutes);
 app.use("/", postRoutes);
 app.use("/auth", authRoutes);
 app.use("/", complexRoutes);
 app.use("/sensor", sensorRoutes);
+app.use("/", eventRoutes);
 
 // const PORT = process.env.PORT || 8080;
 

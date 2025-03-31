@@ -2,9 +2,12 @@ const express = require("express");
 const admin = require("firebase-admin");
 const router = express.Router();
 
+const db = admin.database();
+
 // Firebase Realtime Database 레퍼런스
 const complexDB = admin.database().ref("complexes");
 const apartmentDB = admin.database().ref("apartments");
+const deviceDB = admin.database().ref("devices");
 
 // **단지 클래스**
 class Complex {
@@ -90,9 +93,12 @@ class Apartment {
   }
 
   // 아파트 수정
-  static async update(apartmentId, newName) {
-    if (!newName) throw new Error("새로운 아파트 이름은 필수 입력값입니다.");
-    await apartmentDB.child(apartmentId).update({ name: newName });
+  static async update(apartmentId, data) {
+    await apartmentDB.child(apartmentId).update({
+      temp: data.criticalTemperature || null,
+      name: data.newName || null,
+      complexId: data.complexId || null,
+    });
     return { message: "아파트가 성공적으로 수정되었습니다." };
   }
 
@@ -178,6 +184,16 @@ router.post("/apartment", async (req, res) => {
   }
 });
 
+router.put("/apartment", async (req, res) => {
+  try {
+    res
+      .status(200)
+      .json(await Apartment.update(req.body.apartmentId, req.body));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get("/apartments/:complexId", async (req, res) => {
   try {
     res.status(200).json(await Apartment.getByComplex(req.params.complexId));
@@ -208,6 +224,59 @@ router.get("/apartment/search/:name", async (req, res) => {
     res.status(200).json(apartments);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// 특정 아파트의 센서 정보
+router.get("/apartment/:apartmentId/sensors", async (req, res) => {
+  try {
+    const apartmentId = req.params.apartmentId;
+
+    // Firebase Realtime Database에서 모든 센서 정보를 가져오기
+    const snapshot = await deviceDB
+      .orderByChild("apartmentId")
+      .equalTo(apartmentId)
+      .once("value");
+
+    // 데이터가 없면 빈 객체 반환
+    if (!snapshot.exists()) {
+      return res.status(200).send({ message: "등록된 센서가 없습니다." });
+    }
+
+    // Firebase 데이터는 객체 형태로 반환되므로 배열로 변환
+    const devices = snapshot.val();
+    const deviceList = Object.keys(devices).map((key) => ({
+      sensorId: key, // sensorId는 Firebase 데이터의 키로 사용됨
+      ...devices[key],
+    }));
+
+    // 아파트 센서들의 현재 온도 구하기
+    for (const device of deviceList) {
+      const { sensorId } = device;
+      const temperatureRef = db.ref(`temperature/${sensorId}`);
+
+      try {
+        const snapshot = await temperatureRef.limitToLast(1).once("value");
+
+        if (snapshot.exists()) {
+          const temperatureData = Object.values(snapshot.val())[0]; // 첫 번째 값 가져오기
+          device.temperature = temperatureData ? temperatureData.tempVal : null;
+        } else {
+          device.temperature = null;
+        }
+      } catch (error) {
+        console.error(`센서 ${sensorId}의 온도 조회 중 오류 발생:`, error);
+        device.temperature = null; // 오류 발생 시 기본값 설정
+      }
+    }
+
+    res.status(200).send({
+      message: "센서 목록 조회 성공",
+      devices: deviceList,
+    });
+  } catch (error) {
+    console.error("센서 목록 조회 중 오류 발생:", error);
+    res.status(500).send("서버 내부 오류");
   }
 });
 

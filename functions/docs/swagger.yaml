@@ -1451,6 +1451,77 @@ paths:
                 example: "서버 내부 오류"
 
   /device/{sensorId}:
+    put:
+      summary: 특정 센서 정보 변경
+      description: 센서 ID를 이용하여 센서 정보를 변경합니다.
+      tags:
+        - Sensors
+      parameters:
+        - name: sensorId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 변경할 센서 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - address
+                - xCoord
+                - yCoord
+                - complexId
+                - apartmentId
+              properties:
+                address:
+                  type: string
+                  example: "서울시 강남구 테헤란로 123"
+                  description: 센서 설치 주소
+                xCoord:
+                  type: number
+                  example: 37.4979
+                  description: X좌표 (위도)
+                yCoord:
+                  type: number
+                  example: 127.0276
+                  description: Y좌표 (경도)
+                complexId:
+                  type: string
+                  example: "complex001"
+                  description: 단지 ID
+                apartmentId:
+                  type: string
+                  example: "apartment001"
+                  description: 아파트 ID
+      responses:
+        "200":
+          description: 센서 정보 변경 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "센서 정보 변경 성공"
+        "400":
+          description: 잘못된 요청 (필수 입력값 누락)
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "필수 입력값이 누락되었습니다."
+        "500":
+          description: 서버 내부 오류
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "서버 내부 오류"
+
     delete:
       summary: 특정 센서 삭제
       description: 센서 ID를 이용하여 해당 센서를 삭제합니다.
@@ -1474,6 +1545,67 @@ paths:
                   message:
                     type: string
                     example: "센서가 성공적으로 삭제됨."
+        "500":
+          description: 서버 내부 오류
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "서버 내부 오류"
+
+    get:
+      summary: 특정 센서 정보 조회
+      description: 센서 ID를 이용하여 센서 정보를 조회합니다.
+      tags:
+        - Sensors
+      parameters:
+        - name: sensorId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 센서의 고유 ID
+      responses:
+        "200":
+          description: 센서 정보 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "센서 정보 조회 성공"
+                  sensorId:
+                    type: string
+                    example: "sensor001"
+                  address:
+                    type: string
+                    example: "서울시 강남구 테헤란로 123"
+                  xCoord:
+                    type: number
+                    example: 37.4979
+                  yCoord:
+                    type: number
+                    example: 127.0276
+                  createdAt:
+                    type: string
+                    example: "1741337167407"
+                  complexId:
+                    type: string
+                    example: "complex001"
+                  apartmentId:
+                    type: string
+                    example: "apartment001"
+        "404":
+          description: 데이터가 없을 경우
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
         "500":
           description: 서버 내부 오류
           content:
@@ -1943,6 +2075,12 @@ paths:
                 newName:
                   type: string
                   example: "201동"
+                complexId:
+                  type: string
+                  example: "-OM9PPpthpeiWXndarq_"
+                criticalTemperature:
+                  type: number
+                  example: 50
       responses:
         200:
           description: "아파트가 성공적으로 수정됨"
@@ -2046,3 +2184,120 @@ paths:
                       example: 25
         500:
           description: 서버 오류 발생
+
+  /apartment/{apartmentId}/sensors:
+    get:
+      tags:
+        - Apartment
+      summary: 아파트의 센서 조회
+      description: Firebase Realtime Database에서 지정된 아파트 ID와 연결된 모든 센서 데이터를 가져옵니다.
+      parameters:
+        - name: apartmentId
+          in: path
+          required: true
+          description: 아파트의 ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 센서 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "센서 목록 조회 성공"
+                  devices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sensorId:
+                          type: string
+                          example: "sensor123"
+                        apartmentId:
+                          type: string
+                          example: "apt456"
+                        sensorType:
+                          type: string
+                          example: "온도"
+                        value:
+                          type: number
+                          example: 22.5
+        "500":
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "서버 내부 오류"
+
+  /events/stats:
+    get:
+      tags:
+        - Event
+      summary: 온도 통계 조회 및 변화율 계산
+      description: 전체, 연간, 월간, 주간 데이터 개수와 최고 온도 및 변화율을 조회합니다.
+      responses:
+        "200":
+          description: 온도 통계 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "온도 통계 조회 성공"
+                  stats:
+                    type: object
+                    properties:
+                      totalCount:
+                        type: integer
+                        description: 전체 온도 데이터 개수
+                        example: 150
+                      yearlyCount:
+                        type: integer
+                        description: 연간 온도 데이터 개수
+                        example: 120
+                      monthlyCount:
+                        type: integer
+                        description: 월간 온도 데이터 개수
+                        example: 30
+                      weeklyCount:
+                        type: integer
+                        description: 주간 온도 데이터 개수
+                        example: 7
+                      maxTemp:
+                        type: number
+                        description: 최고 온도
+                        example: 42.5
+                      totalCountChange:
+                        type: number
+                        description: 전체 데이터 개수 변화율
+                        example: 15.0
+                      yearlyCountChange:
+                        type: number
+                        description: 연간 데이터 개수 변화율
+                        example: 10.0
+                      monthlyCountChange:
+                        type: number
+                        description: 월간 데이터 개수 변화율
+                        example: -5.0
+                      weeklyCountChange:
+                        type: number
+                        description: 주간 데이터 개수 변화율
+                        example: 20.0
+                      maxTempChange:
+                        type: number
+                        description: 최고 온도 변화율
+                        example: 5.0
+        "500":
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "서버 오류"

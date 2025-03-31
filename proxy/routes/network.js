@@ -11,6 +11,8 @@ const router = express.Router();
 
 const db = admin.database();
 
+const apartmentDB = admin.database().ref("apartments");
+
 // Digest 인증 헤더 생성 함수
 function createDigestHeader(username, password, digestInfo, method, uri) {
   const ha1 = crypto
@@ -148,11 +150,72 @@ async function saveTemperatureData(temperatureData) {
         tempVal: tempVal,
         updateTime: updateTime,
       });
+
+      saveEvent(devAddr, tempVal);
     }
 
-    console.log("데이터 저장 성공");
+    // console.log("데이터 저장 성공");
   } catch (error) {
     console.error("데이터 저장 중 오류 발생:", error);
+  }
+}
+
+// 이벤트 기록 함수
+async function saveEvent(devAddr, tempVal) {
+  try {
+    const deviceRef = db.ref(`devices/${devAddr}`);
+    const snapshot = await deviceRef.once("value");
+
+    const deviceData = snapshot.val();
+
+    if (!deviceData || !deviceData.apartmentId) {
+      console.warn(`기록할 아파트 ID 없음 (devAddr: ${devAddr})`);
+      return;
+    }
+
+    const apartmentDB = db.ref(`apartments`);
+    const apartmentSnap = await apartmentDB
+      .child(deviceData.apartmentId)
+      .once("value");
+
+    if (!apartmentSnap.exists()) {
+      console.warn(
+        `아파트 데이터 없음 (apartmentId: ${deviceData.apartmentId})`
+      );
+      return;
+    }
+
+    if (!apartmentSnap.val().temp) {
+      console.log("아파트 데이터에 최고 온도가 없음");
+      return;
+    }
+
+    if (parseFloat(apartmentSnap.val().temp) < parseFloat(tempVal)) {
+      // 이벤트 기록
+      const eventRef = db.ref("event");
+      await eventRef.push({
+        devAddr,
+        tempVal,
+        apartmentId: deviceData.apartmentId,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log({
+        devAddr,
+        tempVal,
+        apartmentId: deviceData.apartmentId,
+        timestamp: new Date().toISOString(),
+      });
+      console.log(
+        `이벤트 기록 완료 (devAddr: ${devAddr}, tempVal: ${tempVal})`
+      );
+      return;
+    } else {
+      console.log(`devAddr: ${devAddr} - ${tempVal} ✅ 정상 온도`);
+      return;
+    }
+  } catch (error) {
+    console.error("이벤트 기록 중 오류 발생:", error);
   }
 }
 
@@ -199,7 +262,7 @@ function startDevicePolling(devices, username, password) {
             httpsAgent: agent,
           });
 
-          console.log(`✅ [${ip}] 응답:`, authResponse.data);
+          // console.log(`✅ [${ip}] 응답:`, authResponse.data);
 
           const updateTime = new Date();
           const formattedTime =

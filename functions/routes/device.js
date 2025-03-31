@@ -74,6 +74,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+// 특정 센서 수정
+router.put("/:sensorId", async (req, res) => {
+  const sensorId = req.params.sensorId;
+  const { address, xCoord, yCoord, complexId, apartmentId } = req.body;
+
+  try {
+    const deviceRef = deviceDB.child(sensorId);
+    await deviceRef.update({
+      address,
+      xCoord,
+      yCoord,
+      complexId,
+      apartmentId,
+    });
+    res.status(200).send({ message: "센서가 성공적으로 수정되었습니다." });
+  } catch (error) {
+    console.error("센서 수정 중 오류 발생:", error);
+    res.status(500).send("서버 내부 오류");
+  }
+});
+
 // 특정 센서 삭제
 router.delete("/:sensorId", async (req, res) => {
   const sensorId = req.params.sensorId;
@@ -84,6 +105,25 @@ router.delete("/:sensorId", async (req, res) => {
     res.status(200).send({ message: "센서가 성공적으로 삭제됨." });
   } catch (error) {
     console.error("센서 삭제 중 오류 발생:", error);
+    res.status(500).send("서버 내부 오류");
+  }
+});
+
+// 특정 센서 조회
+router.get("/:sensorId", async (req, res) => {
+  const sensorId = req.params.sensorId;
+
+  try {
+    const deviceRef = deviceDB.child(sensorId);
+    const snapshot = await deviceRef.once("value");
+
+    if (!snapshot.exists()) {
+      return res.status(404).send("센서를 찾을 수 없습니다.");
+    }
+
+    res.status(200).send(snapshot.val());
+  } catch (error) {
+    console.error("센서 조회 중 오류 발생:", error);
     res.status(500).send("서버 내부 오류");
   }
 });
