@@ -227,56 +227,73 @@ router.get("/apartment/search/:name", async (req, res) => {
   }
 });
 
-// 특정 아파트의 센서 정보
+// 특정 아파트의 센서 정보 (페이지네이션 적용)
 router.get("/apartment/:apartmentId/sensors", async (req, res) => {
   try {
     const apartmentId = req.params.apartmentId;
+    let { limit, page } = req.query;
 
-    // Firebase Realtime Database에서 모든 센서 정보를 가져오기
+    limit = parseInt(limit) || 10; // 기본값: 10개
+    page = parseInt(page) || 1; // 기본값: 1페이지
+
+    // Firebase에서 apartmentId가 일치하는 센서 조회
     const snapshot = await deviceDB
       .orderByChild("apartmentId")
       .equalTo(apartmentId)
       .once("value");
 
-    // 데이터가 없면 빈 객체 반환
     if (!snapshot.exists()) {
       return res.status(200).send({ message: "등록된 센서가 없습니다." });
     }
 
-    // Firebase 데이터는 객체 형태로 반환되므로 배열로 변환
-    const devices = snapshot.val();
-    const deviceList = Object.keys(devices).map((key) => ({
-      sensorId: key, // sensorId는 Firebase 데이터의 키로 사용됨
-      ...devices[key],
-    }));
+    // Firebase 데이터는 객체 형태 -> 배열 변환 후 정렬
+    const devices = Object.entries(snapshot.val() || {}).map(
+      ([key, value]) => ({
+        sensorId: key,
+        ...value,
+      })
+    );
 
-    // 아파트 센서들의 현재 온도 구하기
-    for (const device of deviceList) {
+    // 전체 개수 저장
+    const totalDevices = devices.length;
+
+    // 페이지네이션 적용 (배열 자르기)
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedDevices = devices.slice(startIndex, endIndex);
+
+    // 센서별 최신 온도 조회
+    for (const device of paginatedDevices) {
       const { sensorId } = device;
       const temperatureRef = db.ref(`temperature/${sensorId}`);
 
       try {
-        const snapshot = await temperatureRef.limitToLast(1).once("value");
+        const tempSnapshot = await temperatureRef.limitToLast(1).once("value");
 
-        if (snapshot.exists()) {
-          const temperatureData = Object.values(snapshot.val())[0]; // 첫 번째 값 가져오기
+        if (tempSnapshot.exists()) {
+          const temperatureData = Object.values(tempSnapshot.val())[0];
           device.temperature = temperatureData ? temperatureData.tempVal : null;
         } else {
           device.temperature = null;
         }
       } catch (error) {
-        console.error(`센서 ${sensorId}의 온도 조회 중 오류 발생:`, error);
-        device.temperature = null; // 오류 발생 시 기본값 설정
+        console.error(`센서 ${sensorId}의 온도 조회 오류:`, error);
+        device.temperature = null;
       }
     }
 
+    // 응답 반환
     res.status(200).send({
       message: "센서 목록 조회 성공",
-      devices: deviceList,
+      totalDevices, // 전체 센서 개수
+      totalPages: Math.ceil(totalDevices / limit), // 총 페이지 수
+      currentPage: page,
+      limit,
+      devices: paginatedDevices, // 페이지 적용된 데이터만 전송
     });
   } catch (error) {
     console.error("센서 목록 조회 중 오류 발생:", error);
-    res.status(500).send("서버 내부 오류");
+    res.status(500).send({ message: "서버 내부 오류" });
   }
 });
 

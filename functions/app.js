@@ -3,8 +3,6 @@ const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const { swaggerDocument } = require("./config/swagger");
 const admin = require("firebase-admin");
-const https = require("https");
-const fs = require("fs");
 
 require("dotenv").config();
 
@@ -41,11 +39,11 @@ app.use("/", complexRoutes);
 app.use("/sensor", sensorRoutes);
 app.use("/", eventRoutes);
 
-// const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8080;
 
-// app.listen(PORT, () => {
-//   console.log(`Server is running on port ${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 // https 서버 실행
 // const port = 443; // https 포트
