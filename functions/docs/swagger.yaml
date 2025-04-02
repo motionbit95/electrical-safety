@@ -1350,10 +1350,13 @@ paths:
               properties:
                 name:
                   type: string
+                  description: 카메라 이름
                 ip:
                   type: string
+                  description: 카메라 IP주소
                 imageUrl:
                   type: string
+                  description: 카메라 이미지 URL
       responses:
         '201':
           description: 카메라가 성공적으로 추가됨
@@ -1454,6 +1457,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [sensorId, groupId, sensorName, imageUrl]
               properties:
                 sensorId:
                   type: string
@@ -1585,8 +1589,9 @@ paths:
                 - sensorId
               properties:
                 sensorId:
+                  description: 센서 키
                   type: string
-                  example: sensor123
+                  example: ABCD
       responses:
         "200":
           description: 센서 키가 등록되었습니다.
@@ -1864,12 +1869,15 @@ paths:
           application/json:
             schema:
               type: object
+              required: ["groupName"]
               properties:
                 groupName:
                   type: string
+                  description: "그룹 이름"
                   example: "101동"
                 criticalTemperature:
                   type: number
+                  description: "그룹의 임계 온도"
                   example: 50
       responses:
         201:
