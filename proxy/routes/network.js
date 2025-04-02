@@ -11,7 +11,7 @@ const router = express.Router();
 
 const db = admin.database();
 
-const apartmentDB = admin.database().ref("apartments");
+const groupDB = admin.database().ref("groups");
 
 // Digest 인증 헤더 생성 함수
 function createDigestHeader(username, password, digestInfo, method, uri) {
@@ -168,42 +168,38 @@ async function saveEvent(devAddr, tempVal) {
 
     const deviceData = snapshot.val();
 
-    if (!deviceData || !deviceData.apartmentId) {
-      console.warn(`기록할 아파트 ID 없음 (devAddr: ${devAddr})`);
+    if (!deviceData || !deviceData.groupId) {
+      console.warn(`기록할 그룹 ID 없음 (devAddr: ${devAddr})`);
       return;
     }
 
-    const apartmentDB = db.ref(`apartments`);
-    const apartmentSnap = await apartmentDB
-      .child(deviceData.apartmentId)
-      .once("value");
+    const groupDB = db.ref(`groups`);
+    const groupSnap = await groupDB.child(deviceData.groupId).once("value");
 
-    if (!apartmentSnap.exists()) {
-      console.warn(
-        `아파트 데이터 없음 (apartmentId: ${deviceData.apartmentId})`
-      );
+    if (!groupSnap.exists()) {
+      console.warn(`그룹 데이터 없음 (groupId: ${deviceData.groupId})`);
       return;
     }
 
-    if (!apartmentSnap.val().temp) {
-      console.log("아파트 데이터에 최고 온도가 없음");
+    if (!groupSnap.val().temp) {
+      console.log("그룹 데이터에 최고 온도가 없음");
       return;
     }
 
-    if (parseFloat(apartmentSnap.val().temp) < parseFloat(tempVal)) {
+    if (parseFloat(groupSnap.val().temp) < parseFloat(tempVal)) {
       // 이벤트 기록
       const eventRef = db.ref("event");
       await eventRef.push({
         devAddr,
         tempVal,
-        apartmentId: deviceData.apartmentId,
+        groupId: deviceData.groupId,
         timestamp: new Date().toISOString(),
       });
 
       console.log({
         devAddr,
         tempVal,
-        apartmentId: deviceData.apartmentId,
+        groupId: deviceData.groupId,
         timestamp: new Date().toISOString(),
       });
       console.log(

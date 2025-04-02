@@ -47,17 +47,19 @@ const authRoutes = require("./routes/auth");
 const postRoutes = require("./routes/post");
 const deviceRoutes = require("./routes/device");
 const complexRoutes = require("./routes/complex");
-const sensorRoutes = require("./routes/sensor");
+const tempRoutes = require("./routes/temp");
 const eventRoutes = require("./routes/event");
 const cameraRoutes = require("./routes/camera");
+const sensorRoutes = require("./routes/sensor");
 
 app.use("/device", deviceRoutes);
 app.use("/", postRoutes);
 app.use("/auth", authRoutes);
 app.use("/", complexRoutes);
-app.use("/sensor", sensorRoutes);
+app.use("/temp", tempRoutes);
 app.use("/", eventRoutes);
 app.use("/camera", cameraRoutes);
+app.use("/sensor", sensorRoutes);
 
 const PORT = process.env.PORT || 8080;
 

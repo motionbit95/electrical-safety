@@ -9,10 +9,10 @@ const db = admin.database();
 
 // Event 모델 정의
 class Event {
-  constructor(devAddr, tempVal, apartmentId, timestamp) {
+  constructor(devAddr, tempVal, groupId, timestamp) {
     this.devAddr = devAddr;
     this.tempVal = tempVal;
-    this.apartmentId = apartmentId;
+    this.groupId = groupId;
     this.timestamp = timestamp;
   }
 }
@@ -20,8 +20,8 @@ class Event {
 // 데이터 생성 (Create)
 router.post("/event", async (req, res) => {
   try {
-    const { devAddr, tempVal, apartmentId, timestamp } = req.body;
-    const newEvent = new Event(devAddr, tempVal, apartmentId, timestamp);
+    const { devAddr, tempVal, groupId, timestamp } = req.body;
+    const newEvent = new Event(devAddr, tempVal, groupId, timestamp);
 
     // 이벤트 데이터 Firebase에 추가
     await eventDB.push(newEvent);
@@ -53,9 +53,9 @@ router.get("/events", async (req, res) => {
 router.put("/event/:eventId", async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { devAddr, tempVal, apartmentId, timestamp } = req.body;
+    const { devAddr, tempVal, groupId, timestamp } = req.body;
 
-    const updatedEvent = { devAddr, tempVal, apartmentId, timestamp };
+    const updatedEvent = { devAddr, tempVal, groupId, timestamp };
     await eventDB.child(eventId).update(updatedEvent);
 
     res.status(200).send({ message: "이벤트 수정 완료", updatedEvent });

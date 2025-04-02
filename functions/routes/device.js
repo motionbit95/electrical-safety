@@ -11,9 +11,9 @@ const deviceDB = admin.database().ref("devices");
 
 // Device 모델 정의 (클래스 방식)
 class Device {
-  constructor(sensorId, address, xCoord, yCoord, complexId, apartmentId) {
+  constructor(sensorId, address, xCoord, yCoord, complexId, groupId) {
     this.complexId = complexId; // 단지 ID
-    this.apartmentId = apartmentId; // 아파트 ID
+    this.groupId = groupId; // 그룹 ID
     this.sensorId = sensorId; // 센서 ID
     this.address = address; // 주소
     this.xCoord = xCoord; // X좌표
@@ -24,18 +24,10 @@ class Device {
 
 // 새로운 Device를 생성하는 API 엔드포인트
 router.post("/", async (req, res) => {
-  const { sensorId, address, xCoord, yCoord, complexId, apartmentId } =
-    req.body;
+  const { sensorId, address, xCoord, yCoord, complexId, groupId } = req.body;
 
   // 필수 입력값이 누락된 경우 오류 반환
-  if (
-    !sensorId ||
-    !address ||
-    !xCoord ||
-    !yCoord ||
-    !complexId ||
-    !apartmentId
-  ) {
+  if (!sensorId || !address || !xCoord || !yCoord || !complexId || !groupId) {
     return res.status(400).send("필수 입력값이 누락되었습니다.");
   }
 
@@ -56,7 +48,7 @@ router.post("/", async (req, res) => {
       xCoord,
       yCoord,
       complexId,
-      apartmentId
+      groupId
     );
 
     // Firebase Realtime Database에 sensorId를 키로 사용하여 새 기기 정보 저장
@@ -77,7 +69,7 @@ router.post("/", async (req, res) => {
 // 특정 센서 수정
 router.put("/:sensorId", async (req, res) => {
   const sensorId = req.params.sensorId;
-  const { address, xCoord, yCoord, complexId, apartmentId } = req.body;
+  const { address, xCoord, yCoord, complexId, groupId } = req.body;
 
   try {
     const deviceRef = deviceDB.child(sensorId);
@@ -86,7 +78,7 @@ router.put("/:sensorId", async (req, res) => {
       xCoord,
       yCoord,
       complexId,
-      apartmentId,
+      groupId,
     });
     res.status(200).send({ message: "센서가 성공적으로 수정되었습니다." });
   } catch (error) {

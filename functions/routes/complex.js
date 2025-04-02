@@ -6,8 +6,9 @@ const db = admin.database();
 
 // Firebase Realtime Database 레퍼런스
 const complexDB = admin.database().ref("complexes");
-const apartmentDB = admin.database().ref("apartments");
+const groupDB = admin.database().ref("groups");
 const deviceDB = admin.database().ref("devices");
+const sensorDB = admin.database().ref("sensors");
 
 // **단지 클래스**
 class Complex {
@@ -53,74 +54,67 @@ class Complex {
   }
 }
 
-// **아파트 클래스**
-class Apartment {
-  // 아파트 추가
-  static async add(complexId, apartmentName, criticalTemperature = null) {
-    if (!complexId || !apartmentName) {
-      throw new Error("단지 ID와 아파트 이름이 필요합니다.");
+// **그룹 클래스**
+class Group {
+  // 그룹 추가
+  static async add(groupName, criticalTemperature = null) {
+    if (!groupName) {
+      throw new Error("단지 ID와 그룹 이름이 필요합니다.");
     }
 
-    const complexSnap = await complexDB.child(complexId).once("value");
-    if (!complexSnap.exists()) throw new Error("단지를 찾을 수 없습니다.");
-
-    const newApartmentRef = apartmentDB.push();
-    await newApartmentRef.set({
+    const newGroupRef = groupDB.push();
+    await newGroupRef.set({
       temp: criticalTemperature,
-      name: apartmentName,
-      complexId,
+      name: groupName,
     });
     return {
-      id: newApartmentRef.key,
-      message: "아파트가 성공적으로 추가되었습니다.",
+      id: newGroupRef.key,
+      message: "그룹이 성공적으로 추가되었습니다.",
     };
   }
 
-  // 특정 단지 내 아파트 목록 조회
-  static async getByComplex(complexId) {
-    const apartmentSnap = await apartmentDB
-      .orderByChild("complexId")
-      .equalTo(complexId)
-      .once("value");
-    return apartmentSnap.exists() ? apartmentSnap.val() : {};
+  // 특정 그룹 ID로 조회
+  static async getById(groupId) {
+    const groupSnap = await groupDB.child(groupId).once("value");
+    if (!groupSnap.exists()) throw new Error("그룹를 찾을 수 없습니다.");
+    return groupSnap.val();
   }
 
-  // 특정 아파트 ID로 조회
-  static async getById(apartmentId) {
-    const apartmentSnap = await apartmentDB.child(apartmentId).once("value");
-    if (!apartmentSnap.exists()) throw new Error("아파트를 찾을 수 없습니다.");
-    return apartmentSnap.val();
-  }
-
-  // 아파트 수정
-  static async update(apartmentId, data) {
-    await apartmentDB.child(apartmentId).update({
+  // 그룹 수정
+  static async update(groupId, data) {
+    await groupDB.child(groupId).update({
       temp: data.criticalTemperature || null,
       name: data.newName || null,
-      complexId: data.complexId || null,
     });
-    return { message: "아파트가 성공적으로 수정되었습니다." };
+    return { message: "그룹이 성공적으로 수정되었습니다." };
   }
 
-  // 아파트 삭제
-  static async delete(apartmentId) {
-    await apartmentDB.child(apartmentId).remove();
-    return { message: "아파트가 성공적으로 삭제되었습니다." };
+  // 그룹 삭제
+  static async delete(groupId) {
+    await groupDB.child(groupId).remove();
+    return { message: "그룹이 성공적으로 삭제되었습니다." };
   }
 
-  // 아파트 이름으로 검색
+  // 그룹 이름으로 검색
   static async findByName(name) {
-    const apartmentSnap = await apartmentDB.once("value");
-    if (!apartmentSnap.exists()) return [];
+    const groupSnap = await groupDB.once("value");
+    if (!groupSnap.exists()) return [];
 
-    const apartments = apartmentSnap.val();
+    const groups = groupSnap.val();
 
     // 부분 검색 기능 추가 (name에 검색어가 포함된 데이터 필터링)
-    const result = Object.entries(apartments)
+    const result = Object.entries(groups)
       .filter(([id, apt]) => apt.name.includes(name)) // 부분 검색
       .map(([id, apt]) => ({ id, ...apt }));
 
     return result;
+  }
+
+  // 그룹 리스트
+  static async getAll() {
+    const groupSnap = await groupDB.once("value");
+    if (!groupSnap.exists()) return [];
+    return groupSnap.val();
   }
 }
 
@@ -167,79 +161,71 @@ router.get("/complex/:complexId", async (req, res) => {
   }
 });
 
-// **아파트 API 라우터**
-router.post("/apartment", async (req, res) => {
+// **그룹 API 라우터**
+router.post("/group", async (req, res) => {
   try {
     res
       .status(201)
-      .json(
-        await Apartment.add(
-          req.body.complexId,
-          req.body.apartmentName,
-          req.body.criticalTemperature
-        )
-      );
+      .json(await Group.add(req.body.groupName, req.body.criticalTemperature));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.put("/apartment", async (req, res) => {
+router.put("/group", async (req, res) => {
   try {
-    res
-      .status(200)
-      .json(await Apartment.update(req.body.apartmentId, req.body));
+    res.status(200).json(await Group.update(req.body.groupId, req.body));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.get("/apartments/:complexId", async (req, res) => {
+router.get("/groups", async (req, res) => {
   try {
-    res.status(200).json(await Apartment.getByComplex(req.params.complexId));
+    res.status(200).json(await Group.getAll());
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.get("/apartment/:apartmentId", async (req, res) => {
+router.get("/group/:groupId", async (req, res) => {
   try {
-    res.status(200).json(await Apartment.getById(req.params.apartmentId));
+    res.status(200).json(await Group.getById(req.params.groupId));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.delete("/apartment", async (req, res) => {
+router.delete("/group", async (req, res) => {
   try {
-    res.status(200).json(await Apartment.delete(req.body.apartmentId));
+    res.status(200).json(await Group.delete(req.body.groupId));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.get("/apartment/search/:name", async (req, res) => {
+router.get("/group/search/:name", async (req, res) => {
   try {
-    const apartments = await Apartment.findByName(req.params.name);
-    res.status(200).json(apartments);
+    const groups = await Group.findByName(req.params.name);
+    res.status(200).json(groups);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// 특정 아파트의 센서 정보 (페이지네이션 적용)
-router.get("/apartment/:apartmentId/sensors", async (req, res) => {
+// 특정 그룹의 센서 정보 (페이지네이션 적용)
+router.get("/group/:groupId/sensors", async (req, res) => {
   try {
-    const apartmentId = req.params.apartmentId;
+    const groupId = req.params.groupId;
     let { limit, page } = req.query;
 
     limit = parseInt(limit) || 10; // 기본값: 10개
     page = parseInt(page) || 1; // 기본값: 1페이지
 
-    // Firebase에서 apartmentId가 일치하는 센서 조회
-    const snapshot = await deviceDB
-      .orderByChild("apartmentId")
-      .equalTo(apartmentId)
+    // Firebase에서 groupId가 일치하는 센서 조회
+    const snapshot = await sensorDB
+      .orderByChild("groupId")
+      .equalTo(groupId)
       .once("value");
 
     if (!snapshot.exists()) {
