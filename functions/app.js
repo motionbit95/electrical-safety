@@ -15,6 +15,7 @@ const serviceAccount = {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://electrical-safety-4c9bd-default-rtdb.firebaseio.com",
+  storageBucket: "electrical-safety-4c9bd.firebasestorage.app", // Firebase Storage 버킷 추가
 });
 
 const app = express();
@@ -24,6 +25,23 @@ app.use(express.json());
 // 📌 Swagger UI 설정 ("/docs" 경로에서 문서 확인 가능)
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+const { upload, uploadImageToFirebase } = require("./routes/util");
+
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "파일이 업로드되지 않았습니다." });
+    }
+
+    const imageUrl = await uploadImageToFirebase(req.file);
+
+    console.log("이미지 url : ", imageUrl);
+    res.status(200).json({ url: imageUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 📌 라우터 설정
 const authRoutes = require("./routes/auth");
 const postRoutes = require("./routes/post");
@@ -31,6 +49,7 @@ const deviceRoutes = require("./routes/device");
 const complexRoutes = require("./routes/complex");
 const sensorRoutes = require("./routes/sensor");
 const eventRoutes = require("./routes/event");
+const cameraRoutes = require("./routes/camera");
 
 app.use("/device", deviceRoutes);
 app.use("/", postRoutes);
@@ -38,6 +57,7 @@ app.use("/auth", authRoutes);
 app.use("/", complexRoutes);
 app.use("/sensor", sensorRoutes);
 app.use("/", eventRoutes);
+app.use("/camera", cameraRoutes);
 
 const PORT = process.env.PORT || 8080;
 

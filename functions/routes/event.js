@@ -194,7 +194,7 @@ setInterval(async () => {
   } catch (error) {
     console.error(error);
   }
-}, 10000); // 300000ms = 5분
+}, 300000); // 300000ms = 5분
 
 // 온도 데이터 개수 및 최고 온도 추출 (전체, 연간, 월간, 주간) - 변화율 계산 추가
 router.get("/events/stats", async (req, res) => {
