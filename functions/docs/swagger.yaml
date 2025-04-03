@@ -1438,13 +1438,73 @@ paths:
       tags:
         - Sensor(관리자)
       summary: 모든 센서 조회
-      description: Firebase Realtime Database에 저장된 모든 센서 목록을 가져옵니다.
+      description: Firebase Realtime Database에 저장된 모든 센서 목록을 가져옵니다. 페이지네이션을 지원하며, `limit`과 `page` 파라미터를 사용하여 데이터를 나누어 조회할 수 있습니다. 파라미터가 없을 경우 전체 데이터를 반환합니다.
       operationId: getSensors
+      parameters:
+        - name: limit
+          in: query
+          description: 조회할 데이터 수 (기본값: 10)
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: page
+          in: query
+          description: 조회할 페이지 번호 (기본값: 1)
+          required: false
+          schema:
+            type: integer
+            default: 1
       responses:
         "200":
           description: 센서 목록을 성공적으로 조회함
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 센서 목록 조회 성공
+                  totalSensors:
+                    type: integer
+                    example: 100
+                  totalPages:
+                    type: integer
+                    example: 10
+                  currentPage:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 10
+                  sensors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sensorId:
+                          type: string
+                          example: "sensor123"
+                        imageUrl:
+                          type: string
+                          example: "http://example.com/image.jpg"
+                        groupId:
+                          type: string
+                          example: "group1"
+                        sensorName:
+                          type: string
+                          example: "온도 센서"
         "500":
           description: 서버 오류
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 서버 내부 오류
     post:
       tags:
         - Sensor(관리자)
@@ -1857,6 +1917,134 @@ paths:
               type: string
               format: date-time
 
+    /daily-average:
+    get:
+      summary: 일간 평균 온도 데이터 조회
+      responses:
+        200:
+          description: 일간 평균 온도 데이터를 성공적으로 반환
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dailyAverages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          format: date
+                          description: 날짜 (YYYY-MM-DD 형식)
+                        avg:
+                          type: number
+                          description: 해당 날짜의 평균 온도
+        404:
+          description: 데이터를 찾을 수 없음
+        500:
+          description: 서버 오류
+  
+  # /temp/daily-average/{date}:
+  #   get:
+  #     tags:
+  #       - Temperature
+  #     summary: 일별 평균 온도 조회
+  #     description: 특정 날짜의 전체 및 시간별 평균 온도를 조회합니다.
+  #     parameters:
+  #       - name: date
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: string
+  #           format: date
+  #         description: YYYY-MM-DD 형식의 날짜
+  #     responses:
+  #       200:
+  #         description: 일별 온도 데이터를 성공적으로 조회함
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 overallAvg:
+  #                   type: number
+  #                 hourlyAvg:
+  #                   type: object
+  #                   additionalProperties:
+  #                     type: number
+  #       404:
+  #         description: 해당 날짜의 데이터를 찾을 수 없음
+  #       500:
+  #         description: 서버 오류
+
+  # /temp/monthly-average/{year}/{month}:
+  #   get:
+  #     tags:
+  #       - Temperature
+  #     summary: 월별 평균 온도 조회
+  #     description: 특정 월의 전체 및 주별 평균 온도를 조회합니다.
+  #     parameters:
+  #       - name: year
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: integer
+  #       - name: month
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: integer
+  #     responses:
+  #       200:
+  #         description: 월별 온도 데이터를 성공적으로 조회함
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 overallAvg:
+  #                   type: number
+  #                 weeklyAvg:
+  #                   type: object
+  #                   additionalProperties:
+  #                     type: number
+  #       404:
+  #         description: 해당 월의 데이터를 찾을 수 없음
+  #       500:
+  #         description: 서버 오류
+
+  # /temp/yearly-average/{year}:
+  #   get:
+  #     tags:
+  #       - Temperature
+  #     summary: 연별 평균 온도 조회
+  #     description: 특정 연도의 전체 및 월별 평균 온도를 조회합니다.
+  #     parameters:
+  #       - name: year
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: integer
+  #     responses:
+  #       200:
+  #         description: 연별 온도 데이터를 성공적으로 조회함
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 overallAvg:
+  #                   type: number
+  #                 monthlyAvg:
+  #                   type: object
+  #                   additionalProperties:
+  #                     type: number
+  #       404:
+  #         description: 해당 연도의 데이터를 찾을 수 없음
+  #       500:
+  #         description: 서버 오류
+  
   /group:
     post:
       tags:

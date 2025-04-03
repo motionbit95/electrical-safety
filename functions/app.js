@@ -61,11 +61,11 @@ app.use("/", eventRoutes);
 app.use("/camera", cameraRoutes);
 app.use("/sensor", sensorRoutes);
 
-const PORT = process.env.PORT || 8080;
+// const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
 
 // https 서버 실행
 // const port = 443; // https 포트

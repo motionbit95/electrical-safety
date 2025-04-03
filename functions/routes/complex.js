@@ -219,8 +219,9 @@ router.get("/group/:groupId/sensors", async (req, res) => {
     const groupId = req.params.groupId;
     let { limit, page } = req.query;
 
-    limit = parseInt(limit) || 10; // 기본값: 10개
-    page = parseInt(page) || 1; // 기본값: 1페이지
+    // limit과 page가 없으면 전체 반환
+    limit = limit ? parseInt(limit) : undefined;
+    page = page ? parseInt(page) : undefined;
 
     // Firebase에서 groupId가 일치하는 센서 조회
     const snapshot = await sensorDB
@@ -240,8 +241,41 @@ router.get("/group/:groupId/sensors", async (req, res) => {
       })
     );
 
-    // 전체 개수 저장
     const totalDevices = devices.length;
+
+    // 전체 반환시, limit과 page가 없을 경우
+    if (!limit || !page) {
+      // 페이지네이션 없이 전체 데이터 반환
+      // 센서별 최신 온도 조회
+      for (const device of devices) {
+        const { sensorId } = device;
+        const temperatureRef = db.ref(`temperature/${sensorId}`);
+
+        try {
+          const tempSnapshot = await temperatureRef
+            .limitToLast(1)
+            .once("value");
+
+          if (tempSnapshot.exists()) {
+            const temperatureData = Object.values(tempSnapshot.val())[0];
+            device.temperature = temperatureData
+              ? temperatureData.tempVal
+              : null;
+          } else {
+            device.temperature = null;
+          }
+        } catch (error) {
+          console.error(`센서 ${sensorId}의 온도 조회 오류:`, error);
+          device.temperature = null;
+        }
+      }
+
+      return res.status(200).send({
+        message: "센서 목록 조회 성공",
+        totalDevices, // 전체 센서 개수
+        devices, // 전체 데이터 반환
+      });
+    }
 
     // 페이지네이션 적용 (배열 자르기)
     const startIndex = (page - 1) * limit;

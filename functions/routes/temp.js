@@ -3,6 +3,12 @@ const router = express.Router();
 const admin = require("firebase-admin");
 const db = admin.database();
 
+const dayjs = require("dayjs");
+const isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
+const isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
 // 1. 특정 센서 ID의 모든 데이터를 가져오는 함수
 router.get("/:sensorId", async (req, res) => {
   const { sensorId } = req.params;
@@ -228,5 +234,148 @@ router.delete("/users/:userId/sensors/:sensorId", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// router.get("/daily-average/:date", async (req, res) => {
+//   const { date } = req.params; // date format: YYYY-MM-DD
+//   try {
+//     const ref = db.ref(`temperature`);
+//     const snapshot = await ref.once("value");
+
+//     if (!snapshot.exists()) {
+//       return res.status(404).json({ message: "데이터를 찾을 수 없습니다." });
+//     }
+
+//     let allData = [];
+
+//     // sensorId별 데이터 수집
+//     Object.values(snapshot.val()).forEach((sensorData) => {
+//       allData.push(
+//         ...Object.values(sensorData).filter(
+//           (item) =>
+//             item.updateTime &&
+//             new Date(item.updateTime).toISOString().split("T")[0] === date
+//         )
+//       );
+//     });
+
+//     if (allData.length === 0) {
+//       return res
+//         .status(404)
+//         .json({ message: "해당 날짜의 데이터가 없습니다." });
+//     }
+
+//     const overallAvg =
+//       allData.reduce((sum, d) => sum + d.tempVal, 0) / allData.length;
+
+//     const hourlyAvg = {};
+//     for (let hour = 0; hour < 24; hour++) {
+//       const hourData = allData.filter(
+//         (d) => new Date(d.updateTime).getHours() === hour
+//       );
+//       hourlyAvg[hour] = hourData.length
+//         ? hourData.reduce((sum, d) => sum + d.tempVal, 0) / hourData.length
+//         : 0;
+//     }
+
+//     res.json({ overallAvg, hourlyAvg });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// router.get("/monthly-average/:year/:month", async (req, res) => {
+//   const { year, month } = req.params;
+//   try {
+//     const ref = db.ref(`temperature`);
+//     const snapshot = await ref.once("value");
+
+//     if (!snapshot.exists()) {
+//       return res.status(404).json({ message: "데이터를 찾을 수 없습니다." });
+//     }
+
+//     let sensorDataMap = {};
+//     let allData = [];
+
+//     Object.entries(snapshot.val()).forEach(([sensorId, sensorData]) => {
+//       const filteredData = Object.values(sensorData).filter((item) => {
+//         if (!item.updateTime) return false;
+//         const itemDate = new Date(item.updateTime);
+//         return (
+//           itemDate.getFullYear() === parseInt(year) &&
+//           itemDate.getMonth() + 1 === parseInt(month)
+//         );
+//       });
+
+//       if (filteredData.length > 0) {
+//         sensorDataMap[sensorId] = filteredData;
+//         allData.push(...filteredData);
+//       }
+//     });
+
+//     if (allData.length === 0) {
+//       return res.status(404).json({ message: "해당 월의 데이터가 없습니다." });
+//     }
+
+//     const sensorAverages = {};
+//     Object.entries(sensorDataMap).forEach(([sensorId, data]) => {
+//       sensorAverages[sensorId] =
+//         data.reduce((sum, d) => sum + d.tempVal, 0) / data.length;
+//     });
+
+//     const overallAvg =
+//       allData.reduce((sum, d) => sum + d.tempVal, 0) / allData.length;
+
+//     res.json({ overallAvg, sensorAverages });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// router.get("/yearly-average/:year", async (req, res) => {
+//   const { year } = req.params;
+//   try {
+//     const ref = db.ref(`temperature`);
+//     const snapshot = await ref.once("value");
+
+//     if (!snapshot.exists()) {
+//       return res.status(404).json({ message: "데이터를 찾을 수 없습니다." });
+//     }
+
+//     let sensorDataMap = {};
+//     let allData = [];
+
+//     Object.entries(snapshot.val()).forEach(([sensorId, sensorData]) => {
+//       const filteredData = Object.values(sensorData).filter(
+//         (item) =>
+//           item.updateTime &&
+//           new Date(item.updateTime).getFullYear() === parseInt(year)
+//       );
+
+//       if (filteredData.length > 0) {
+//         sensorDataMap[sensorId] = filteredData;
+//         allData.push(...filteredData);
+//       }
+//     });
+
+//     if (allData.length === 0) {
+//       return res
+//         .status(404)
+//         .json({ message: "해당 연도의 데이터가 없습니다." });
+//     }
+
+//     const sensorAverages = {};
+//     Object.entries(sensorDataMap).forEach(([sensorId, data]) => {
+//       sensorAverages[sensorId] =
+//         data.reduce((sum, d) => sum + d.tempVal, 0) / data.length;
+//     });
+
+//     const overallAvg =
+//       allData.reduce((sum, d) => sum + d.tempVal, 0) / allData.length;
+
+//     res.json({ overallAvg, sensorAverages });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
 module.exports = router;
