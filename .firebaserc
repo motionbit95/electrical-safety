@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "electrical-safety-4c9bd"
-  }
+    "default": "electrical-safety-4c9bd",
+    "electrical": "electrical-safety-4c9bd"
+  },
+  "targets": {},
+  "etags": {}
 }

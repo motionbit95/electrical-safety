@@ -10,7 +10,10 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
-      ]
+      ],
+      "runtime": "nodejs20",
+      "memory": "1GB",
+      "timeoutSeconds": 60
     }
   ]
 }
