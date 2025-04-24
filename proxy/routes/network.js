@@ -12,6 +12,7 @@ const router = express.Router();
 const db = admin.database();
 
 const groupDB = admin.database().ref("groups");
+const cameraDB = admin.database().ref("cameras");
 
 // Digest 인증 헤더 생성 함수
 function createDigestHeader(username, password, digestInfo, method, uri) {
@@ -61,15 +62,19 @@ async function getDeviceToken(deviceIp, username, password) {
   });
 
   try {
-    await axios.post(
-      url,
-      {},
-      { headers: { "Content-Type": "application/json" }, httpsAgent: agent }
-    );
+    await axios
+      .post(
+        url,
+        {},
+        { headers: { "Content-Type": "application/json" }, httpsAgent: agent }
+      )
+      .catch((error) => {
+        console.error("[", new Date(), `] ❌ [${deviceIp}] 네트워크 오류`);
+      });
   } catch (error) {
     const authHeader = error.response?.headers["www-authenticate"];
     if (!authHeader) {
-      console.error(`❌ [${deviceIp}] 'www-authenticate' 헤더가 없습니다.`);
+      console.error("[", new Date(), `] ❌ [${deviceIp}] 잘못된 접근입니다.`);
       return null;
     }
 
@@ -134,6 +139,50 @@ async function scanNetwork(username, password) {
       await Promise.all(pingPromises);
       resolve(devices);
     });
+  });
+}
+
+// Firebase Realtime Database에서 토큰이 존재하는 카메라만 필터링
+async function scanCameras(username, password) {
+  console.log("[", new Date(), "] ✅ 카메라 스캔 시작");
+
+  const cameraRef = db.ref("cameras");
+
+  return new Promise((resolve, reject) => {
+    cameraRef.once(
+      "value",
+      async (snapshot) => {
+        const data = snapshot.val();
+        const cameras = [];
+        const pingPromises = [];
+
+        if (data) {
+          Object.entries(data).forEach(([key, camera]) => {
+            const { imageUrl, ip, name } = camera;
+
+            pingPromises.push(
+              getDeviceToken(ip, username, password)
+                .then((tokenData) => {
+                  if (tokenData) {
+                    cameras.push({ imageUrl, ip, name, tokenData });
+                    console.log("토큰 확인 성공", ip);
+                  }
+                })
+                .catch((err) => {
+                  console.error(`❌ [${ip}] 토큰 확인 오류:`, err.message);
+                })
+            );
+          });
+        }
+
+        await Promise.all(pingPromises);
+        resolve(cameras);
+      },
+      (error) => {
+        console.error("카메라 스캔 실패:", error);
+        reject(error);
+      }
+    );
   });
 }
 
@@ -287,8 +336,12 @@ function startDevicePolling(devices, username, password) {
 router.get("/scan", async (req, res) => {
   const { username = "admin", password = "13579Qwert!" } = req.query;
   try {
-    const devices = await scanNetwork(username, password);
-    startDevicePolling(devices, username, password);
+    const cameras = await scanCameras(username, password);
+    console.log("카메라 : ", cameras);
+
+    // const devices = await scanNetwork(username, password);
+
+    startDevicePolling(cameras, username, password);
 
     res.status(200).json({
       message: "✅ 네트워크 스캔 완료 (토큰 있는 장치만 포함)",
