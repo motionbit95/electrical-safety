@@ -6,6 +6,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 const { exec } = require("child_process");
 const admin = require("firebase-admin");
+const { timeStamp } = require("console");
 
 const router = express.Router();
 
@@ -124,11 +125,11 @@ async function getDeviceToken(deviceIp, username, password) {
         }
       );
 
-      console.log(`[${timestamp()}] [${deviceIp}] ✅ 토큰 획득 성공`);
+      console.log(`[${timestamp()}] ✅ 토큰 획득 성공 [${deviceIp}] `);
       return authResponse.data;
     } catch (authErr) {
       console.error(
-        `[${timestamp()}] [${deviceIp}] ❌ Digest 인증 실패: ${authErr.message}`
+        `[${timestamp()}] ❌ [${deviceIp}] Digest 인증 실패: ${authErr.message}`
       );
       return null;
     }
@@ -169,7 +170,9 @@ async function scanNetwork(username, password) {
 
 // Firebase Realtime Database에서 토큰이 존재하는 카메라만 필터링
 async function scanCameras(username, password) {
-  console.log("[", new Date(), "] ✅ 카메라 스캔 시작");
+    const timestamp = () => new Date().toLocaleString();
+
+  console.log(`[${timestamp()}] ✅ 카메라 스캔 시작`);
 
   const cameraRef = db.ref("cameras");
 
@@ -190,7 +193,6 @@ async function scanCameras(username, password) {
                 .then((tokenData) => {
                   if (tokenData) {
                     cameras.push({ imageUrl, ip, name, tokenData });
-                    console.log("토큰 확인 성공", ip);
                   }
                 })
                 .catch((err) => {
@@ -237,13 +239,15 @@ async function saveTemperatureData(temperatureData) {
 // 이벤트 기록 함수
 async function saveEvent(devAddr, tempVal) {
   try {
-    const deviceRef = db.ref(`devices/${devAddr}`);
+    const deviceRef = db.ref(`sensors/${devAddr}`);
     const snapshot = await deviceRef.once("value");
 
     const deviceData = snapshot.val();
 
+    const timestamp = () => new Date().toLocaleString();
+
     if (!deviceData || !deviceData.groupId) {
-      console.warn(`기록할 그룹 ID 없음 (devAddr: ${devAddr})`);
+      //console.warn(`[${timestamp()}] ❌ [${devAddr}] 센서 정보 불러오기 실패`);
       return;
     }
 
@@ -251,12 +255,12 @@ async function saveEvent(devAddr, tempVal) {
     const groupSnap = await groupDB.child(deviceData.groupId).once("value");
 
     if (!groupSnap.exists()) {
-      console.warn(`그룹 데이터 없음 (groupId: ${deviceData.groupId})`);
+      console.warn(`[${timestamp()}] ❌ 그룹 데이터 없음 (groupId: ${deviceData.groupId})`);
       return;
     }
 
     if (!groupSnap.val().temp) {
-      console.log("그룹 데이터에 최고 온도가 없음");
+      console.log(`[${timestamp()}] ❌ 그룹 데이터에 최고 온도가 없음`);
       return;
     }
 
@@ -270,18 +274,16 @@ async function saveEvent(devAddr, tempVal) {
         timestamp: new Date().toISOString(),
       });
 
-      console.log({
-        devAddr,
-        tempVal,
-        groupId: deviceData.groupId,
-        timestamp: new Date().toISOString(),
-      });
-      console.log(
-        `이벤트 기록 완료 (devAddr: ${devAddr}, tempVal: ${tempVal})`
-      );
+      // console.log({
+      //   devAddr,
+      //   tempVal,
+      //   groupId: deviceData.groupId,
+      //   timestamp: new Date().toISOString(),
+      // });
+      console.log(`[${timestamp()}] ❌ [${devAddr}] 위험 온도 : ${tempVal}`);
       return;
     } else {
-      console.log(`devAddr: ${devAddr} - ${tempVal} ✅ 정상 온도`);
+      console.log(`[${timestamp()}] ✅ [${devAddr}] 정상 온도 : ${tempVal}`);
       return;
     }
   } catch (error) {
@@ -291,17 +293,21 @@ async function saveEvent(devAddr, tempVal) {
 
 // 15초마다 장치 요청 함수
 function startDevicePolling(devices, username, password) {
+  const timestamp = () => new Date().toLocaleString();
+  
   devices.forEach(({ ip, tokenData }) => {
     const accessToken = tokenData.data.accessToken;
     if (!accessToken) {
-      console.error(`❌ [${ip}] accessToken이 없습니다.`);
+      console.error(`[${timestamp()}] ❌ [${ip}] accessToken이 없습니다.`);
       return;
     }
 
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     setInterval(async () => {
-      const url = `https://${ip}/restv1/device/wts`;
+      const isPrivate = isPrivateIp(ip);
+      const protocol = isPrivate ? "https" : "http";
+      const url = `${protocol}://${ip}/restv1/device/wts`;
       const uri = new URL(url).pathname;
 
       try {
@@ -309,7 +315,7 @@ function startDevicePolling(devices, username, password) {
       } catch (error) {
         const authHeader = error.response?.headers["www-authenticate"];
         if (!authHeader) {
-          console.error(`❌ [${ip}] 'www-authenticate' 헤더 없음.`);
+          console.error(`[${timestamp()}] [${ip}] 'www-authenticate' 헤더 없음.`);
           return;
         }
 
@@ -350,7 +356,7 @@ function startDevicePolling(devices, username, password) {
 
           saveTemperatureData(authResponse.data);
         } catch (err) {
-          console.error(`❌ [${ip}] 요청 오류:`, err.message);
+          console.error(`[${timestamp()}] ❌ [${ip}] 요청 오류:`, err.message);
         }
       }
     }, 15000);
@@ -361,11 +367,8 @@ function startDevicePolling(devices, username, password) {
 router.get("/scan", async (req, res) => {
   const { username = "admin", password = "13579Qwert!" } = req.query;
   try {
-    const cameras = await scanCameras(username, password);
-    console.log("카메라 : ", cameras);
-
-    // const devices = await scanNetwork(username, password);
-    // startDevicePolling(cameras, username, password);
+    const devices = await scanCameras(username, password);
+    startDevicePolling(devices, username, password);
 
     res.status(200).json({
       message: "✅ 네트워크 스캔 완료 (토큰 있는 장치만 포함)",
