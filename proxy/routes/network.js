@@ -51,37 +51,58 @@ function extractDigestInfo(authHeader) {
   };
 }
 
-// 장치 토큰 요청 함수
-async function getDeviceToken(deviceIp, username, password) {
-  const url = `https://${deviceIp}/restv1/token`;
+// 사설 IP 확인
+function isPrivateIp(ip) {
+  return (
+    ip.startsWith("10.") ||
+    ip.startsWith("192.168.") ||
+    (ip.startsWith("172.") &&
+      (() => {
+        const second = parseInt(ip.split(".")[1], 10);
+        return second >= 16 && second <= 31;
+      })())
+  );
+}
 
-  const caCert = fs.readFileSync("ca-cert.pem");
-  const agent = new https.Agent({
-    ca: caCert,
-    rejectUnauthorized: false,
-  });
+// Digest 인증 토큰 요청
+async function getDeviceToken(deviceIp, username, password) {
+  const isPrivate = isPrivateIp(deviceIp);
+  const protocol = isPrivate ? "https" : "http";
+  const url = `${protocol}://${deviceIp}/restv1/token`;
+  const headers = { "Content-Type": "application/json" };
+  const timestamp = () => new Date().toLocaleString();
+
+  // HTTPS Agent 설정 (내부망인 경우에만)
+  let httpsAgent = undefined;
+  if (isPrivate) {
+    const caCert = fs.readFileSync("ca-cert.pem");
+
+    httpsAgent = new https.Agent({
+      ca: caCert,
+      rejectUnauthorized: false, // 필요 시 true로 변경
+    });
+  }
 
   try {
-    await axios
-      .post(
-        url,
-        {},
-        { headers: { "Content-Type": "application/json" }, httpsAgent: agent }
-      )
-      .catch((error) => {
-        console.error("[", new Date(), `] ❌ [${deviceIp}] 네트워크 오류`);
-      });
+    // 1차 요청으로 Digest 인증 유도 (401 예상)
+    await axios.post(url, {}, { headers, httpsAgent, timeout: 5000 });
+
+    console.error(`[${timestamp()}] [${deviceIp}] ❌ 예기치 않은 200 OK`);
+    return null;
   } catch (error) {
-    const authHeader = error.response?.headers["www-authenticate"];
+    const authHeader = error.response?.headers?.["www-authenticate"];
+    const errMsg = error.message || "알 수 없는 오류";
+
     if (!authHeader) {
-      console.error("[", new Date(), `] ❌ [${deviceIp}] 잘못된 접근입니다.`);
+      console.error(`[${timestamp()}] [${deviceIp}] ❌ 인증 헤더 없음`);
+      console.error(`[${deviceIp}] 상세 오류: ${errMsg}`);
       return null;
     }
 
-    const digestInfo = extractDigestInfo(authHeader);
-    const uri = new URL(url).pathname;
-
     try {
+      const digestInfo = extractDigestInfo(authHeader);
+      const uri = new URL(url).pathname;
+
       const authHeaderValue = createDigestHeader(
         username,
         password,
@@ -95,16 +116,20 @@ async function getDeviceToken(deviceIp, username, password) {
         {},
         {
           headers: {
-            "Content-Type": "application/json",
+            ...headers,
             Authorization: authHeaderValue,
           },
-          httpsAgent: agent,
+          httpsAgent,
+          timeout: 5000,
         }
       );
 
-      return authResponse.data; // 토큰 데이터 반환
-    } catch (err) {
-      console.error(`❌ [${deviceIp}] 인증 오류:`, err.message);
+      console.log(`[${timestamp()}] [${deviceIp}] ✅ 토큰 획득 성공`);
+      return authResponse.data;
+    } catch (authErr) {
+      console.error(
+        `[${timestamp()}] [${deviceIp}] ❌ Digest 인증 실패: ${authErr.message}`
+      );
       return null;
     }
   }
@@ -340,8 +365,7 @@ router.get("/scan", async (req, res) => {
     console.log("카메라 : ", cameras);
 
     // const devices = await scanNetwork(username, password);
-
-    startDevicePolling(cameras, username, password);
+    // startDevicePolling(cameras, username, password);
 
     res.status(200).json({
       message: "✅ 네트워크 스캔 완료 (토큰 있는 장치만 포함)",

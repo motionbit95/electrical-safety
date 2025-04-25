@@ -11,7 +11,7 @@ require("dotenv").config();
 const options = {
   key: fs.readFileSync("private-key.pem"),
   cert: fs.readFileSync("certificate.pem"),
-  passphrase: "1q2w3e4r", // 여기에 passphrase 입력
+  passphrase: "1q2w3e4r", // 위에서 설정한 비밀번호
 };
 
 const serviceAccount = {
@@ -38,7 +38,13 @@ let devices = []; // 토큰이 있는 장치 목록 저장
 // 네트워크 스캔 API를 호출하고 장치 목록 업데이트
 const updateDeviceList = async () => {
   try {
-    const response = await axios.get("http://localhost:8081/network/scan");
+    const agent = new https.Agent({
+      rejectUnauthorized: false, // 인증서 검증 비활성화
+    });
+
+    const response = await axios.get("https://localhost:443/network/scan", {
+      httpsAgent: agent,
+    });
     devices = response.data.devices;
     console.log(`장치 목록 업데이트 : ${new Date().toLocaleString()}`);
     console.log(`장치 수: ${devices.length}`, JSON.stringify(devices, null, 2));
@@ -47,17 +53,19 @@ const updateDeviceList = async () => {
   }
 };
 
-const PORT = process.env.PORT || 8081;
+// const PORT = process.env.PORT || 8081;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+//   updateDeviceList(); // 서버 시작 시 즉시 실행
+//   setInterval(updateDeviceList, 5 * 60 * 1000); // 5분마다 실행
+// });
+
+// https 서버 실행
+const port = 443; // https 포트
+https.createServer(options, app).listen(port, "localhost", () => {
+  console.log(`https 서버가 https://localhost:${port}에서 실행 중입니다.`);
   updateDeviceList(); // 서버 시작 시 즉시 실행
   setInterval(updateDeviceList, 5 * 60 * 1000); // 5분마다 실행
 });
-
-// https 서버 실행
-// const port = 443; // https 포트
-// https.createServer(options, app).listen(port, "localhost", () => {
-//   console.log(`https 서버가 https://localhost:${port}에서 실행 중입니다.`);
-// });
 module.exports = app;
