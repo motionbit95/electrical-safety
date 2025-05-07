@@ -37,7 +37,6 @@ let devices = []; // 토큰이 있는 장치 목록 저장
 
 // 네트워크 스캔 API를 호출하고 장치 목록 업데이트
 const updateDeviceList = async () => {
-
   try {
     const agent = new https.Agent({
       rejectUnauthorized: false, // 인증서 검증 비활성화
@@ -50,10 +49,15 @@ const updateDeviceList = async () => {
 
     const timestamp = () => new Date().toLocaleString();
 
-    console.log(`[${timestamp()}] ✅ 장치 목록 업데이트 - 총 ${devices.length}건`);
+    console.log(
+      `[${timestamp()}] ✅ 장치 목록 업데이트 - 총 ${devices.length}건`
+    );
   } catch (error) {
     const timestamp = () => new Date().toLocaleString();
-    console.error(`[${timestamp()}] ❌ 장치 스캔 API 호출 중 오류 발생: `, error.response.data.message);
+    console.error(
+      `[${timestamp()}] ❌ 장치 스캔 API 호출 중 오류 발생: `,
+      error.response.data.message
+    );
   }
 };
 

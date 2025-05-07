@@ -179,6 +179,61 @@ router.get("/:sensorId/yearly-average/:year", async (req, res) => {
   }
 });
 
+// 일별 평균 조회
+router.get("/daily-average/:date", async (req, res) => {
+  const { date } = req.params;
+
+  try {
+    const ref = db.ref(`dailyAverage/${date}`);
+    const snapshot = await ref.once("value");
+
+    if (!snapshot.exists()) {
+      return res.status(404).json({ message: "해당 날짜 평균값이 없습니다." });
+    }
+
+    res.json(snapshot.val());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 월별 평균 조회
+router.get("/monthly-average/:year/:month", async (req, res) => {
+  const { year, month } = req.params;
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+
+  try {
+    const ref = db.ref(`monthlyAverage/${monthStr}`);
+    const snapshot = await ref.once("value");
+
+    if (!snapshot.exists()) {
+      return res.status(404).json({ message: "해당 월 평균값이 없습니다." });
+    }
+
+    res.json(snapshot.val());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 연도별 평균 조회
+router.get("/yearly-average/:year", async (req, res) => {
+  const { year } = req.params;
+
+  try {
+    const ref = db.ref(`yearlyAverage/${year}`);
+    const snapshot = await ref.once("value");
+
+    if (!snapshot.exists()) {
+      return res.status(404).json({ message: "해당 연도 평균값이 없습니다." });
+    }
+
+    res.json(snapshot.val());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 1. 센서 키 등록
 router.post("/users/:userId/sensors", async (req, res) => {
   const { userId } = req.params;
